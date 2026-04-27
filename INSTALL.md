@@ -28,6 +28,16 @@ This installs:
 
 The installer automatically creates the default database at `~/.pardus/data.pardus` after building.
 
+### Quick Install (Precompiled)
+
+If you already have a precompiled binary and want a faster installation (no Rust compilation):
+
+```bash
+./install.sh --install
+```
+
+This copies `bin/pardus-v0.2.1` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
+
 ---
 
 ## Cross-Platform Compatibility
@@ -192,6 +202,12 @@ Add this to your OpenCode configuration file (`~/.config/opencode/opencode.jsonc
 ```
 
 Adjust the path to match your installation.
+
+### OpenCode MCP Auto-Configuration
+
+During installation, both `setup.sh` and `install.sh` will ask if you want to configure PardusDB MCP for OpenCode automatically. If you answer yes, the installer adds the MCP server entry to `~/.config/opencode/opencode.jsonc` for you.
+
+After installation completes, restart OpenCode to load the new MCP tools.
 
 ### Using MCP in Claude Desktop
 

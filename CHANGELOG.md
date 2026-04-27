@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-create database**: Default database `~/.pardus/data.pardus` is now created automatically after installation completes
 - **Config file**: Installer creates `~/.config/pardus/config.toml` with default settings
 
+### Added
+
+- **install.sh**: New lightweight installer that uses precompiled binaries from `bin/pardus-vX.X.X`, skips Rust compilation
+- **Versioned binaries**: After compilation, `setup.sh` saves the binary to `bin/pardus-v0.2.1` for use with `install.sh`
+- **Rust auto-install**: `setup.sh` automatically installs Rust via `rustup` if `cargo` is not found
+- **OpenCode MCP auto-config**: Both `setup.sh` and `install.sh` ask if the user wants to configure PardusDB MCP in `~/.config/opencode/opencode.jsonc`
+
 ## [0.2.0] - 2026-04-27
 
 ### Added
