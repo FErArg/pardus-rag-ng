@@ -11,6 +11,7 @@ PARDUS_HOME="$HOME/.pardus"
 CONFIG_DIR="$HOME/.config/pardus"
 DATA_DIR="$PARDUS_HOME"
 MCP_DIR="$PARDUS_HOME/mcp"
+BIN_OUT_DIR="$SCRIPT_DIR/bin"
 
 show_help() {
     cat << EOF
@@ -58,6 +59,29 @@ detect_shell() {
     esac
 }
 
+install_rust() {
+    echo ""
+    echo "Rust no encontrado. Instalando Rust..."
+    echo ""
+
+    if command -v curl &> /dev/null; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    else
+        echo "ERROR: curl no encontrado. No se puede instalar Rust automaticamente."
+        echo "Por favor instala Rust manualmente desde https://rustup.rs/"
+        exit 1
+    fi
+
+    if [ -f "$HOME/.cargo/bin/cargo" ]; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+        echo ""
+        echo "Rust instalado correctamente."
+    else
+        echo "ERROR: La instalacion de Rust fallo."
+        exit 1
+    fi
+}
+
 check_prerequisites() {
     echo "==================================="
     echo "   PardusDB v${VERSION} Installer"
@@ -68,10 +92,16 @@ check_prerequisites() {
     echo "  Plataforma detectada: $PLATFORM"
     echo ""
 
+    if ! command -v cargo &> /dev/null; then
+        install_rust
+    fi
+
+    export PATH="$HOME/.cargo/bin:$PATH"
+
     local missing=()
 
     if ! command -v cargo &> /dev/null; then
-        missing+=("Rust (cargo) - instalar desde https://rustup.rs/")
+        missing+=("Rust (cargo) - error critico tras instalacion")
     fi
 
     if ! command -v node &> /dev/null; then
@@ -108,6 +138,9 @@ check_prerequisites() {
 
 build_binary() {
     echo "[1/7] Construyendo binario Rust (release mode)..."
+
+    export PATH="$HOME/.cargo/bin:$PATH"
+
     cargo build --release 2>/dev/null
 
     if [ ! -f "target/release/$BINARY_NAME" ]; then
@@ -116,6 +149,12 @@ build_binary() {
         exit 1
     fi
     echo "Binario construido correctamente."
+
+    echo ""
+    echo "[1/7] Guardando binario en bin/pardus-v${VERSION}..."
+    mkdir -p "$BIN_OUT_DIR"
+    cp "target/release/$BINARY_NAME" "$BIN_OUT_DIR/pardus-v${VERSION}"
+    echo "  Binario guardado en: $BIN_OUT_DIR/pardus-v${VERSION}"
 }
 
 install_binary() {
@@ -279,6 +318,9 @@ verify_installation() {
     echo "  - $INSTALL_DIR/pardus      (helper, crea BD por defecto)"
     echo "  - $MCP_DIR/              (servidor MCP)"
     echo "  - $CONFIG_DIR/config.toml (configuracion)"
+    echo ""
+    echo "Binarios compilados:"
+    echo "  - $BIN_OUT_DIR/pardus-v${VERSION}"
     echo ""
     echo "Uso rapido:"
     echo "  pardus                    # Abre la BD por defecto"
