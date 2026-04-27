@@ -184,9 +184,9 @@ PardusDB includes an MCP (Model Context Protocol) server that allows AI agents t
 
 ### Configuring MCP in OpenCode
 
-Add this to your OpenCode configuration file (`~/.config/opencode/opencode.jsonc` or `./opencode.jsonc`):
+Add this to your OpenCode configuration file (`~/.config/opencode/opencode.json` or `./opencode.json`):
 
-```jsonc
+```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {

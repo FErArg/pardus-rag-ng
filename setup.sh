@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.0"
+VERSION="0.4.1"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 INSTALL_DIR="$HOME/.local/bin"
@@ -231,7 +231,7 @@ install_mcp() {
     cp "$SCRIPT_DIR/mcp/src/server.py" "$MCP_DIR/"
 
     echo "  Instalando paquete MCP de Python..."
-    pip3 install mcp --quiet 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+    pip3 install mcp --quiet 2>/dev/null || pip3 install mcp --quiet --break-system-packages 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
 
     echo "  MCP server instalado en: $MCP_DIR/server.py"
 }
@@ -255,7 +255,7 @@ configure_opencode() {
     fi
 
     local OPCODE_CONFIG_DIR="$HOME/.config/opencode"
-    local OPCODE_CONFIG="$OPCODE_CONFIG_DIR/opencode.jsonc"
+    local OPCODE_CONFIG="$OPCODE_CONFIG_DIR/opencode.json"
     local OPCODE_SKILLS_DIR="$HOME/.config/opencode/skills"
     local SKILL_SOURCE="$SCRIPT_DIR/skill/skill.md"
 

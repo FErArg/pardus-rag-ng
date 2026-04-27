@@ -199,9 +199,9 @@ PardusDB includes an MCP server that allows AI agents (OpenCode, Claude Desktop,
 
 ### OpenCode Configuration
 
-Add to your `opencode.jsonc`:
+Add to your `opencode.json`:
 
-```jsonc
+```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {

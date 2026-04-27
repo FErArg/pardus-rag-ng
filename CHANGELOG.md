@@ -5,6 +5,17 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-04-28
+
+### Fixed
+
+- **OpenCode config extension**: Renamed `opencode.jsonc` → `opencode.json` in installers and documentation to match the actual file format used by OpenCode.
+- **pip install mcp fallback**: Added `--break-system-packages` fallback for systems where pip blocks global installations (Debian/Ubuntu with Python 3.11+ externally managed environments).
+
+### Changed
+
+- Updated README.md and INSTALL.md to reference `opencode.json` instead of `opencode.jsonc`.
+
 ## [0.4.0] - 2026-04-28
 
 ### Changed
