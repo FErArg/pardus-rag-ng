@@ -4,216 +4,110 @@ Guide for AI agents working with the PardusDB codebase.
 
 ## Project Overview
 
-PardusDB is a fast, SQLite-like embedded vector database written in Rust. It provides:
-- Single-file storage (`.pardus` files) in `~/.pardus/`
-- SQL-like query syntax
-- HNSW-based vector similarity search
-- MCP server for AI agent integration
-- Python and TypeScript SDKs
+PardusDB is a single-file embedded vector database in Rust with SQL-like query syntax, HNSW-based vector search, and an MCP server for AI agents. Single-crate (`src/`), no monorepo tooling.
 
-## Key Conventions
+## Key Facts
 
-### Directory Structure
+### Version Bump
 
-```
-pardus-rag/
-├── src/                  # Rust source code
-│   ├── main.rs           # REPL entry point
-│   ├── lib.rs            # Public API exports
-│   ├── database.rs       # High-level Database struct
-│   ├── db.rs             # Low-level VectorDB struct
-│   ├── table.rs          # Table with rows + HNSW graph
-│   ├── graph.rs          # HNSW implementation
-│   ├── parser.rs         # SQL parser (recursive descent)
-│   ├── schema.rs         # Column, Row, Value types
-│   ├── distance.rs       # Distance metrics (Cosine, DotProduct, Euclidean)
-│   ├── node.rs           # Graph node + Candidate
-│   ├── concurrent.rs     # Thread-safe ConcurrentDatabase
-│   ├── prepared.rs       # Prepared statements
-│   ├── error.rs          # MarsError enum
-│   ├── storage.rs        # Persistence (MARS format)
-│   └── gpu.rs            # GPU acceleration (wgpu)
-├── mcp/                  # MCP server (TypeScript)
-├── sdk/
-│   ├── python/           # Python SDK
-│   └── typescript/       # TypeScript SDK
-├── examples/
-│   ├── simple_rag.rs
-│   └── python/
-└── setup.sh              # Installer
-```
+Version is spread across 5 files — update **all** when bumping:
+- `Cargo.toml` — package version
+- `mcp/src/server.py` — `Server("pardusdb-mcp", "...")` at line 1246 (note: currently `0.4.13` vs `Cargo.toml` `0.4.12`)
+- `sdk/python/pyproject.toml` — version field
+- `sdk/typescript/pardusdb/package.json` — version field
+- `setup.sh` + `install.sh` — `VERSION=` variable near top of each
 
-### Standard Agent Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `PARDUSDB_PATH` | `~/.pardus/` | Database storage directory |
-| `PARDUSDB_BINARY` | `~/.local/bin/pardusdb` | Path to pardusdb binary |
-| `PARDUSDB_MCP_SERVER` | `~/.pardus/mcp/server.py` | MCP server script path |
-| `MCP_DB_PATH` | `~/.pardus/pardus-rag.db` | Default MCP database file |
-| `OPENCODE_MCP_CONFIG` | `~/.config/opencode/opencode.json` | OpenCode MCP configuration |
-| `EMBEDDER_MODEL` | `all-MiniLM-L6-v2` | SentenceTransformer model |
-| `EMBEDDER_DIM` | `384` | Embedding dimension for the model |
-| `EMBEDDER_CACHE` | `~/.cache/huggingface/hub/` | HuggingFace model cache |
-| `DEFAULT_VECTOR_DIM` | `384` | Default vector dimension for new tables |
-| `HNSW_M` | `16` | HNSW graph max connections per node |
-| `HNSW_EF_CONSTRUCTION` | `200` | HNSW construction dynamic list size |
-| `HNSW_EF_SEARCH` | `50` | HNSW search dynamic list size |
-
-### Environment Setup
-
-```bash
-# Install binary
-cargo build --release
-cp target/release/pardusdb ~/.local/bin/
-
-# Install MCP server dependencies
-pip install mcp sentence-transformers pypdf python-docx openpyxl xlrd
-
-# Install OpenCode MCP config
-# Ensure ~/.config/opencode/opencode.json includes:
-# {
-#   "mcpServers": {
-#     "pardusdb": {
-#       "command": "python3",
-#       "args": ["/home/user/.pardus/mcp/server.py"]
-#     }
-#   }
-# }
-```
-
-### Rust Code Conventions
-
-- **Error handling**: Use `MarsError` from `error.rs` with `thiserror`. Never use `unwrap()` on operations that could fail in production code.
-- **Locks**: Always handle `RwLock` poisoning gracefully — use `.lock().unwrap_or_else(|e| e.into_inner())` instead of `.unwrap()`.
-- **Unsafe**: Any `unsafe` blocks must have explicit comments explaining the safety invariants.
-- **Naming**: Use `PascalCase` for types/traits, `snake_case` for functions/variables, `SCREAMING_SNAKE_CASE` for constants.
-
-### Data Flow
-
-```
-SQL string → parser::parse() → Command enum
-  → Database::execute_command() → Table operations
-    → Graph::insert/query → Distance::compute
-
-Text query → MCP agent → pardusdb_search_text tool
-  → generate_embedding() → SIMILARITY search → Results
-```
-
-## MCP Server Integration
-
-The MCP server spawns the `pardusdb` binary as a subprocess for each operation. Key points:
-
-- Binary must be in PATH or the MCP server code must be updated with the full path
-- MCP server uses stdio for communication (JSON-RPC over stdin/stdout)
-- Tools are prefixed with `pardusdb_` (e.g., `pardusdb_create_database`, `pardusdb_search_similar`)
-- Use `pardusdb_search_text` for semantic search by text query (generates embedding internally)
-- Use `pardusdb_search_similar` when you already have an embedding vector
-
-### Available MCP Tools
-
-| Tool | Purpose |
-|------|---------|
-| `pardusdb_create_database` | Create/open a database file |
-| `pardusdb_open_database` | Open an existing database |
-| `pardusdb_create_table` | Create a table with schema |
-| `pardusdb_insert_vector` | Insert a single vector row |
-| `pardusdb_batch_insert` | Insert multiple vector rows |
-| `pardusdb_search_similar` | Search by embedding vector |
-| `pardusdb_search_text` | Search by text query (generates embedding) |
-| `pardusdb_execute_sql` | Execute raw SQL |
-| `pardusdb_list_tables` | List all tables |
-| `pardusdb_import_text` | Import documents from directory |
-| `pardusdb_import_status` | Check import status/log |
-| `pardusdb_get_schema` | Get table schema |
-| `pardusdb_health_check` | Run health diagnostics |
-
-## Common Tasks
-
-### Adding a new SQL operator
-
-1. Add to `ComparisonOp` enum in `parser.rs`
-2. Add parsing logic in `parse_condition()`
-3. Add evaluation logic in `table.rs:evaluate_condition()`
-4. Add test in the `#[cfg(test)]` module
-
-### Adding a new distance metric
-
-1. Implement `Distance<T>` trait in `distance.rs`
-2. Add type alias in `db.rs` (e.g., `CosineDB<f32> = VectorDB<f32, Cosine>`)
-3. Update `Table` to use the desired distance in `table.rs`
-
-### Modifying the HNSW graph
-
-The graph is in `graph.rs`. Key methods:
-- `insert()`: Add node, search candidates, prune neighbors, back-link
-- `search()`: Greedy BFS from start node using max-heap
-- `robust_prune()`: Geometric diversity pruning
-- `query()`: Search + truncate to k results
-
-## Troubleshooting
-
-### "Vector dimension mismatch"
-
-All vectors in a table must have the same dimension. Check:
-- Table was created with correct `VECTOR(n)` dimension
-- All inserted vectors have exactly `n` elements
-
-### "Table not found"
-
-- Table was created with `CREATE TABLE`
-- Using correct table name (case-sensitive)
-- Database connection is valid
-
-### "Invalid number" in vector INSERT
-
-Embedder may produce values in scientific notation (e.g., `-4.846e-33`).
-Fixed in v0.4.13 — parser now supports `e`/`E` notation.
-
-### Slow inserts
-
-Use batch inserts instead of individual:
-```rust
-conn.insert_batch_direct("table", vectors, metadata)?;
-```
-
-## Version Bump
-
-All these files must be updated together when bumping version:
-- `Cargo.toml` (line 3)
-- `mcp/package.json` (line 3)
-- `mcp/src/index.ts` (line 611)
-- `mcp/src/server.py` (line 1232 - `Server("pardusdb-mcp", "0.x.y")`)
-- `sdk/python/pyproject.toml` (line 7)
-- `sdk/typescript/pardusdb/package.json` (line 3)
-
-### Testing
-
-Run tests with:
-```bash
-cargo test
-```
-
-For specific modules:
-```bash
-cargo test --lib graph
-cargo test --lib distance
-```
-
-### Building
+### Build & Test
 
 ```bash
 cargo build --release
+cargo test                                   # all tests
+cargo test --lib graph                       # single module
+cargo test --test database_test              # integration tests in tests/
+cargo run --example simple_rag --release     # example
+cargo run --bin benchmark --release          # benchmarks in src/bin/
 ```
 
-With GPU support:
+No CI, no pre-commit hooks, no formatter config, no linter config. No `rustfmt.toml` or `clippy.toml`.
+
+### GPU Feature
+
+Optional, behind `--features gpu`. Adds `wgpu` + `bytemuck` + `pollster` deps.
+
 ```bash
 cargo build --release --features gpu
 ```
 
-## Resources
+### Python SDK
 
-- [GitHub](https://github.com/pardus-ai/pardusdb)
-- [Pardus AI](https://pardusai.org/)
-- [Rust Docs](https://doc.rust-lang.org/)
-- [MCP Protocol](https://modelcontextprotocol.io/)
+```bash
+pip install -e sdk/python
+# lint: ruff, typecheck: mypy (both in pyproject.toml [dev] deps)
+cd sdk/python && pip install -e ".[dev]" && ruff check && mypy pardusdb/
+```
+
+
+
+## Architecture
+
+```
+src/main.rs                   # Entrypoint: REPL or run_with_file(stdin)
+src/lib.rs                    # Public API — re-exports all modules
+src/database.rs               # Database: manages tables in memory, save/load
+src/db.rs                     # VectorDB generic struct (low-level, not the main API)
+src/table.rs                  # Table: rows + HNSW graph + UNIQUE indexes
+src/graph.rs                  # HNSW with robust_prune
+src/parser.rs                 # Recursive-descent SQL parser
+src/storage.rs                # MARS binary format (mmap-based)
+src/distance.rs               # Cosine, DotProduct, Euclidean metrics
+src/concurrent.rs             # Arc<RwLock> thread-safe wrapper
+src/schema.rs                 # Column, Row, Value, Schema types
+src/error.rs                  # MarsError enum (thiserror)
+src/prepared.rs               # Prepared statements with ? placeholders
+src/node.rs                   # Graph Node + Candidate types
+src/gpu.rs                    # WGSL shaders for GPU distance compute
+src/shaders/                  # GPU compute shaders (WGSL)
+
+tests/                        # Integration tests (*.rs in tests/)
+src/bin/                      # Benchmarks (14 files: benchmark_*.rs, profile*.rs, ollama_test.rs)
+
+mcp/src/server.py             # MCP server (Python, ~1300 lines)
+sdk/python/pardusdb/          # Python SDK
+sdk/typescript/pardusdb/      # TypeScript SDK
+examples/simple_rag.rs        # Rust example
+examples/python/              # Python example
+```
+
+### MCP Server (Python)
+
+- Runs `pardusdb <path>` as a subprocess, pipes SQL via stdin, reads result from stdout.
+- Spawns a new process per operation — no long-lived daemon.
+- Tools are prefixed `pardusdb_`. Text search generates embeddings locally via `sentence-transformers` (all-MiniLM-L6-v2).
+- File: `mcp/src/server.py` (Python; the `mcp/README.md` references an npm-published version, not the source tree).
+
+## Conventions
+
+- **Rust edition**: 2024. MSRV: 1.85.
+- **Error type**: `MarsError` (thiserror). Never `unwrap()` in production paths.
+- **RwLock poisoning**: Use `.lock().unwrap_or_else(|e| e.into_inner())` not `.unwrap()`.
+- **Table store**: Default distance metric is `Euclidean` (hardcoded in `Table` struct).
+- **File format**: MARS binary format (`b"MARS"` magic bytes), mmap-based via `memmap2`.
+
+## SQL Quirks
+
+- Vector syntax is `[0.1, 0.2, ...]` (square brackets, comma-separated floats).
+- Similarity search: `WHERE embedding SIMILARITY [vec]` — results sorted by distance ascending.
+- Scientific notation supported (e.g., `-4.846e-33`).
+- UNIQUE constraints use HashSet for O(1) duplicate detection.
+- GROUP BY is O(n) hash aggregation. JOINs use O(n+m) hash join.
+
+## Troubleshooting
+
+| Symptom | Cause/Fix |
+|---------|-----------|
+| `Vector dimension mismatch` | Table was created with `VECTOR(n)`, all inserts must match `n` |
+| `Table not found` | Case-sensitive name, table must exist |
+| `Invalid number` in INSERT | Scientific notation — upgrade to 0.4.13+ which handles `e`/`E` |
+| Slow inserts | Use batch insert (1000-at-once is 220x faster than individual) |
+| MCP server fails silently | Check `proc.returncode` — the binary might return non-zero |
+| MCP "binary not found" | Ensure `pardusdb` is in PATH or set `PARDUSDB_PATH` env var |

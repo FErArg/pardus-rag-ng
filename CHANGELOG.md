@@ -5,6 +5,13 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.13] - 2026-04-28
+
+### Changed
+
+- **Bumped version** to 0.4.13 across Cargo.toml, setup.sh, install.sh, SDKs, and MCP server.
+- **Removed all Node.js references** from README.md, INSTALL.md, mcp/README.md, AGENTS.md. Node.js is not required to build or use PardusDB.
+
 ## [0.4.12] - 2026-04-28
 
 ### Fixed

@@ -2,7 +2,7 @@
 
 **A fast, SQLite-like embedded vector database with graph-based approximate nearest neighbor search**
 
-[![Version](https://img.shields.io/badge/version-0.4.12-blue.svg)](https://github.com/pardus-ai/pardusdb)
+[![Version](https://img.shields.io/badge/version-0.4.13-blue.svg)](https://github.com/pardus-ai/pardusdb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.85-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org/)
@@ -30,7 +30,7 @@ While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no
 - **Thread-safe** — Safe concurrent reads in multi-threaded applications
 - **Full transactions** — BEGIN/COMMIT/ROLLBACK for atomic operations
 - **Optional GPU acceleration** — For large batch inserts and queries
-- **Python MCP server** (no Node.js required)
+- **Python MCP server**
 - **Import documents from disk** — PDF, CSV, DOCX, XLSX, XLS, JSON, JSONL, MD, TXT with auto-embeddings and parent-child tracking
 - **Optional dependency installers** — Install document parsing libraries (pypdf, python-docx, openpyxl, xlrd) and sentence-transformers for auto-embeddings via setup.sh/install.sh
 - **Database health checks** — Verify integrity, detect orphans, check dimensions
@@ -240,21 +240,7 @@ client.insert("docs", [0.1, 0.2, ...], {"content": "Hello"})
 results = client.search("docs", [0.1, 0.2, ...], k=10)
 ```
 
-### TypeScript SDK
 
-```bash
-cd sdk/typescript/pardusdb
-npm install && npm run build
-```
-
-```typescript
-import { PardusDB } from 'pardusdb';
-
-const client = new PardusDB();
-await client.createTable('docs', 768, { content: 'TEXT' });
-await client.insert('docs', [0.1, 0.2], { content: 'Hello' });
-const results = await client.search('docs', [0.1, 0.2], 10);
-```
 
 ## Benchmarks
 

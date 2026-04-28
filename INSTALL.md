@@ -22,7 +22,7 @@ This installs:
 - MCP server → `~/.pardus/mcp/`
 - Config file → `~/.config/pardus/config.toml`
 - Python SDK
-- TypeScript SDK
+
 
 The installer automatically creates the default database at `~/.pardus/pardus-rag.db` after building.
 
@@ -34,7 +34,7 @@ If you already have a precompiled binary and want a faster installation (no Rust
 ./install.sh --install
 ```
 
-This copies `bin/pardus-v0.4.12` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
+This copies `bin/pardus-v0.4.13` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
 
 ---
 
@@ -333,24 +333,7 @@ results = client.search("docs", [0.1, 0.2, ...], k=10)
 
 See `sdk/python/README.md` for full documentation.
 
-### TypeScript SDK
 
-```bash
-cd /path/to/pardusdb/sdk/typescript/pardusdb
-npm install
-npm run build
-```
-
-```typescript
-import { PardusDB } from 'pardusdb';
-
-const client = new PardusDB();
-await client.createTable('docs', 768, { content: 'TEXT' });
-await client.insert('docs', [0.1, 0.2], { content: 'Hello' });
-const results = await client.search('docs', [0.1, 0.2], 10);
-```
-
-See `sdk/typescript/pardusdb/README.md` for full documentation.
 
 ---
 
@@ -370,14 +353,7 @@ When using the MCP server, make sure you open a database first:
 pardusdb_create_database with path="~/.pardus/mydb.pardus"
 ```
 
-### "Node version too old"
 
-PardusDB requires Node.js 18+. Update:
-```bash
-# Using nvm (recommended)
-nvm install 18
-nvm use 18
-```
 
 ### Python SDK import fails
 
@@ -407,4 +383,3 @@ pardusdb --version
 | MCP server | `~/.pardus/mcp/` |
 | Config file | `~/.config/pardus/config.toml` |
 | Python SDK | (installed via pip) |
-| TypeScript SDK | `sdk/typescript/pardusdb/` |

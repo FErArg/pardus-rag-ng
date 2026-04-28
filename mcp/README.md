@@ -29,20 +29,14 @@ This server enables AI agents like Claude to interact with PardusDB for vector s
 
 ## Installation
 
-### Option 1: npm (Recommended)
+The source-tree MCP server is at `mcp/src/server.py`. It runs directly with Python 3.10+:
 
 ```bash
-npm install -g @pardusai/pardusdb-mcp
+pip install mcp
+python3 mcp/src/server.py
 ```
 
-### Option 2: From Source
-
-```bash
-cd mcp
-npm install
-npm run build
-npm link
-```
+See the root `README.md` for full installation via `setup.sh`.
 
 ## Configuration
 
@@ -212,15 +206,10 @@ Claude: I'll help you build a RAG system:
 
 ## Development
 
+The MCP server is a single Python file (`mcp/src/server.py`). Run it directly:
+
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Run locally for testing
-npm run dev
+python3 mcp/src/server.py
 ```
 
 ## Architecture
