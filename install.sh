@@ -173,7 +173,22 @@ install_mcp() {
     cp "$SCRIPT_DIR/mcp/src/server.py" "$MCP_DIR/"
 
     echo "  Instalando paquete MCP de Python..."
-    pip3 install mcp --quiet 2>/dev/null || pip3 install mcp --quiet --break-system-packages 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+
+    # Detectar plataforma para flags de pip
+    local pip_extra=""
+    if [ "$(uname -s)" = "Linux" ]; then
+        pip_extra="--break-system-packages"
+    fi
+
+    if command -v pip3 &> /dev/null; then
+        PIP_CMD="pip3"
+    elif command -v pip &> /dev/null; then
+        PIP_CMD="pip"
+    else
+        PIP_CMD="python3 -m pip"
+    fi
+
+    $PIP_CMD install mcp --quiet $pip_extra 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
 
     mcp_state=$(python3 -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "fallo")
     echo "  - mcp (Python package): $mcp_state"
