@@ -37,7 +37,9 @@ While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no
 
 ## Installation
 
-See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+Two installers are provided. Both install the binary, helper script, MCP server, Python SDK, and config — the only difference is how the binary is obtained.
+
+### Option 1: setup.sh — Build from source (requires Rust)
 
 ```bash
 git clone https://github.com/pardus-ai/pardusdb
@@ -45,7 +47,27 @@ cd pardusdb
 ./setup.sh --install
 ```
 
-This installs the binary, helper script, MCP server, and SDKs.
+Compiles `pardusdb` from Rust source with `cargo build --release`. Use this if you want the latest code or have modified the source. Rust is installed automatically if missing.
+
+### Option 2: install.sh — Use precompiled binary (no Rust)
+
+```bash
+git clone https://github.com/pardus-ai/pardusdb
+cd pardusdb
+./install.sh --install
+```
+
+Copies the precompiled binary from `bin/pardus-v0.4.13` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
+
+| | setup.sh | install.sh |
+|---|---|---|
+| Requires Rust | Yes (installed automatically if missing) | No |
+| Compiles source | Yes (`cargo build --release`) | No |
+| Uses binary from | `target/release/pardusdb` | `bin/pardus-v*` |
+| Speed | Slower (compilation ~1-3 min) | Fast (copy only, <1 sec) |
+| Everything else | Identical | Identical |
+
+See [INSTALL.md](INSTALL.md) for detailed instructions.
 
 ## Quick Start
 

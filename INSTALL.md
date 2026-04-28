@@ -9,32 +9,71 @@ Complete installation and configuration guide for PardusDB.
 
 ## Quick Install
 
+Two installers are provided. Both install the same components — the only difference is how the binary is obtained.
+
+### Components Installed by Both
+
+| Component | Path |
+|-----------|------|
+| `pardusdb` binary | `~/.local/bin/pardusdb` |
+| `pardus` helper script | `~/.local/bin/pardus` |
+| MCP server | `~/.pardus/mcp/` |
+| Config file | `~/.config/pardus/config.toml` |
+| Data directory | `~/.pardus/` |
+| Python SDK | (pip-installed from source) |
+
+The default database `~/.pardus/pardus-rag.db` is auto-created after installation.
+
+---
+
+### Option 1: setup.sh — Build from source (requires Rust)
+
 ```bash
 git clone https://github.com/pardus-ai/pardusdb
 cd pardusdb
 ./setup.sh --install
 ```
 
-This installs:
-- Binary `pardusdb` → `~/.local/bin/pardusdb`
-- Helper script `pardus` → `~/.local/bin/pardus`
-- Data directory → `~/.pardus/`
-- MCP server → `~/.pardus/mcp/`
-- Config file → `~/.config/pardus/config.toml`
-- Python SDK
+**What it does:**
+1. Checks for Rust/Cargo (installs via rustup.rs if missing)
+2. Compiles `pardusdb` with `cargo build --release`
+3. Saves the compiled binary to `bin/pardus-v0.4.13` for future use
+4. Installs the binary, helper, MCP server, config, Python SDK
+5. Creates default database
 
+**Use this when:** You want the latest source code, have modified Rust files, or are setting up a development environment.
 
-The installer automatically creates the default database at `~/.pardus/pardus-rag.db` after building.
+---
 
-### Quick Install (Precompiled)
-
-If you already have a precompiled binary and want a faster installation (no Rust compilation):
+### Option 2: install.sh — Use precompiled binary (no Rust)
 
 ```bash
+git clone https://github.com/pardus-ai/pardusdb
+cd pardusdb
 ./install.sh --install
 ```
 
-This copies `bin/pardus-v0.4.13` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
+**What it does:**
+1. Copies the precompiled binary from `bin/pardus-v0.4.13` to `~/.local/bin/pardusdb`
+2. Installs the helper, MCP server, config, Python SDK
+3. Creates default database
+
+**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.13`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
+
+**Use this when:** You just want to install quickly, don't have Rust, or are deploying from a release tarball.
+
+---
+
+### Comparison
+
+| | setup.sh | install.sh |
+|---|---|---|
+| Requires Rust | Yes (auto-installed if missing) | No |
+| Compiles source | Yes (`cargo build --release`) | No |
+| Takes binary from | `target/release/pardusdb` | `bin/pardus-v*` |
+| Writes binary to `bin/` | Yes (saves compiled version) | No |
+| Speed | ~1-3 min (compilation) | <1 second (copy only) |
+| MCP server, SDK, config | Same | Same |
 
 ---
 
@@ -300,9 +339,12 @@ pardus
 
 ## Uninstall
 
+Both installers support `--uninstall`. Run either from the repo root:
+
 ```bash
 cd /path/to/pardusdb
 ./setup.sh --uninstall
+# or: ./install.sh --uninstall
 ```
 
 This removes:
