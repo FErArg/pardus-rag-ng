@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.5"
+VERSION="0.4.6"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 INSTALL_DIR="$HOME/.local/bin"
@@ -271,10 +271,12 @@ install_sentence_transformers() {
 
     pip3 install sentence-transformers --quiet 2>/dev/null || pip3 install sentence-transformers --quiet --break-system-packages 2>/dev/null
 
-    if python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" 2>/dev/null; then
-        echo "  - sentence-transformers (all-MiniLM-L6-v2, 384-dim): OK"
+    CACHE_DIR="$HOME/.cache/huggingface/hub"
+    MODEL_DIR="models--sentence-transformers--all-MiniLM-L6-v2"
+    if [ -d "$CACHE_DIR/$MODEL_DIR" ]; then
+        echo "  - sentence-transformers (all-MiniLM-L6-v2, 384-dim): OK (en cache)"
     else
-        echo "  - sentence-transformers: instalado, modelo se descargara al primer uso"
+        echo "  - sentence-transformers: instalado, descarga pendiente al primer uso (~80MB)"
     fi
 }
 

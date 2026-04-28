@@ -34,13 +34,24 @@ EMBEDDER_MODEL = "all-MiniLM-L6-v2"
 
 # ==================== Optional Dependencies ====================
 
+_embedder_instance = None
+HAS_EMBEDDER = False
+
 try:
     from sentence_transformers import SentenceTransformer
-    _embedder = SentenceTransformer(EMBEDDER_MODEL)
     HAS_EMBEDDER = True
 except ImportError:
-    _embedder = None
-    HAS_EMBEDDER = False
+    pass
+
+def get_embedder():
+    global _embedder_instance
+    if _embedder_instance is None and HAS_EMBEDDER:
+        try:
+            from sentence_transformers import SentenceTransformer
+            _embedder_instance = SentenceTransformer(EMBEDDER_MODEL)
+        except Exception as e:
+            print(f"[embedder] failed to load model: {e}", file=sys.stderr)
+    return _embedder_instance
 
 try:
     import pypdf
@@ -60,6 +71,12 @@ try:
 except ImportError:
     XLSX_AVAILABLE = False
 
+try:
+    import xlrd
+    XLS_AVAILABLE = True
+except ImportError:
+    XLS_AVAILABLE = False
+
 
 # ==================== Types ====================
 
@@ -68,17 +85,21 @@ class PardusDBClient:
         self.db_path: Optional[str] = None
         self.current_table: Optional[str] = None
 
-    async def execute(self, command: str) -> str:
+    def execute(self, command: str) -> str:
+        import subprocess
         db_arg = [self.db_path] if self.db_path else []
-        proc = await asyncio.create_subprocess_exec(
-            "pardusdb",
-            *db_arg,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate(input=f"{command}\nquit\n".encode())
-        return (stdout + stderr).decode()
+        try:
+            proc = subprocess.run(
+                ["pardusdb", *db_arg],
+                input=f"{command}\nquit\n".encode(),
+                capture_output=True,
+                timeout=30,
+            )
+            return (proc.stdout + proc.stderr).decode()
+        except subprocess.TimeoutExpired:
+            return "Error: Query timed out"
+        except FileNotFoundError:
+            return "Error: pardusdb binary not found in PATH"
 
     def set_db_path(self, db_path: Optional[str]) -> None:
         self.db_path = db_path
@@ -109,11 +130,11 @@ def file_hash(path: str) -> str:
 def generate_embedding(text: str, dim: int) -> list[float]:
     if not text or not HAS_EMBEDDER:
         return [0.0] * dim
+    embedder = get_embedder()
+    if embedder is None:
+        return [0.0] * dim
     try:
-        result = _embedder.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-        if asyncio.iscoroutine(result):
-            result = asyncio.run(result)
-        vec = result
+        vec = embedder.encode(text, convert_to_numpy=True, normalize_embeddings=True)
         if vec is None:
             return [0.0] * dim
         vec = vec.tolist() if hasattr(vec, 'tolist') else list(vec)
@@ -121,7 +142,7 @@ def generate_embedding(text: str, dim: int) -> list[float]:
             return [0.0] * dim
         return vec
     except Exception as e:
-        print(f"[embedder] error generating embedding: {e}", file=sys.stderr)
+        print(f"[embedder] error: {e}", file=sys.stderr)
         return [0.0] * dim
 
 
@@ -382,6 +403,28 @@ def parse_jsonl(path: str) -> dict[str, Any]:
     }
 
 
+def parse_xls(path: str) -> dict[str, Any]:
+    if not XLS_AVAILABLE:
+        raise ImportError("xlrd not installed. Install with: pip install xlrd")
+    wb = xlrd.open_workbook(path)
+    title = Path(path).stem
+    sheet = wb.sheet_by_index(0)
+    rows = []
+    for i in range(sheet.nrows):
+        row_data = {}
+        for j in range(sheet.ncols):
+            cell = sheet.cell(i, j)
+            row_data[str(j)] = str(cell.value) if cell.value else ""
+        if any(v for v in row_data.values()):
+            rows.append({"content": json.dumps(row_data), "page": i + 1})
+    full_content = "\n".join(r["content"] for r in rows)
+    return {
+        "title": title,
+        "content": full_content,
+        "pages": rows if rows else [{"content": "", "page": 0}],
+    }
+
+
 PARSERS = {
     ".txt": parse_txt,
     ".md": parse_md,
@@ -389,6 +432,7 @@ PARSERS = {
     ".pdf": parse_pdf,
     ".docx": parse_docx,
     ".xlsx": parse_xlsx,
+    ".xls": parse_xls,
     ".json": parse_json,
     ".jsonl": parse_jsonl,
 }
@@ -407,7 +451,7 @@ async def handle_create_database(args: dict[str, Any]) -> dict[str, Any]:
         if parent and not parent.exists():
             parent.mkdir(parents=True, exist_ok=True)
         db_client.set_db_path(db_path)
-        await db_client.execute(f".create {db_path}")
+        db_client.execute(f".create {db_path}")
         return {"content": [{"type": "text", "text": f"Database created successfully at: {db_path}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error creating database: {e}"}], "isError": True}
@@ -421,7 +465,7 @@ async def handle_open_database(args: dict[str, Any]) -> dict[str, Any]:
         return {"content": [{"type": "text", "text": f"Error: Database file not found: {db_path}"}], "isError": True}
     try:
         db_client.set_db_path(db_path)
-        await db_client.execute(f".open {db_path}")
+        db_client.execute(f".open {db_path}")
         return {"content": [{"type": "text", "text": f"Database opened successfully: {db_path}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error opening database: {e}"}], "isError": True}
@@ -445,7 +489,7 @@ async def handle_create_table(args: dict[str, Any]) -> dict[str, Any]:
                 sql_type = type_map.get(col_type.lower(), col_type.upper())
                 columns.append(f"{col_name} {sql_type}")
         sql = f"CREATE TABLE IF NOT EXISTS {name} ({', '.join(columns)})"
-        await db_client.execute(sql)
+        db_client.execute(sql)
         db_client.set_current_table(name)
         return {"content": [{"type": "text", "text": f"Table '{name}' created successfully with {vector_dim}-dimensional vectors.\n\nSQL: {sql}"}]}
     except Exception as e:
@@ -473,7 +517,7 @@ async def handle_insert_vector(args: dict[str, Any]) -> dict[str, Any]:
                 else:
                     values.append(str(val))
         sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(values)})"
-        result = await db_client.execute(sql)
+        result = db_client.execute(sql)
         id_match = parse_id_from_result(result) or "unknown"
         return {"content": [{"type": "text", "text": f"Vector inserted successfully with ID: {id_match}"}]}
     except Exception as e:
@@ -504,7 +548,7 @@ async def handle_batch_insert(args: dict[str, Any]) -> dict[str, Any]:
                     else:
                         values.append(str(val))
             sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(values)})"
-            result = await db_client.execute(sql)
+            result = db_client.execute(sql)
             vid = parse_id_from_result(result)
             if vid:
                 results.append(str(vid))
@@ -524,7 +568,7 @@ async def handle_search_similar(args: dict[str, Any]) -> dict[str, Any]:
     try:
         vector_str = f"[{', '.join(str(x) for x in query_vector)}]"
         sql = f"SELECT * FROM {table} WHERE embedding SIMILARITY {vector_str} LIMIT {k}"
-        result = await db_client.execute(sql)
+        result = db_client.execute(sql)
         return {"content": [{"type": "text", "text": f"Search Results:\n\n{result}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error searching: {e}"}], "isError": True}
@@ -535,7 +579,7 @@ async def handle_execute_sql(args: dict[str, Any]) -> dict[str, Any]:
     if not sql:
         return {"content": [{"type": "text", "text": "Error: SQL query is required"}], "isError": True}
     try:
-        result = await db_client.execute(sql)
+        result = db_client.execute(sql)
         return {"content": [{"type": "text", "text": f"Query Result:\n\n{result}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error executing SQL: {e}"}], "isError": True}
@@ -543,7 +587,7 @@ async def handle_execute_sql(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_list_tables() -> dict[str, Any]:
     try:
-        result = await db_client.execute("SHOW TABLES")
+        result = db_client.execute("SHOW TABLES")
         return {"content": [{"type": "text", "text": f"Tables:\n\n{result}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error listing tables: {e}"}], "isError": True}
@@ -1087,7 +1131,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.5")
+server = Server("pardusdb-mcp", "0.4.6")
 
 
 @server.list_tools()

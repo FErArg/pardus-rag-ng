@@ -5,6 +5,21 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-04-28
+
+### Fixed
+
+- **Coroutine bug in MCP execute()**: `PardusDBClient.execute()` was an `async def` method using `asyncio.create_subprocess_exec`, but called without `await` from 15+ synchronous helper functions. Every call returned an unresolved coroutine object instead of the SQL result string, causing `expected string or bytes-like object, got 'coroutine'` errors during document import. Fixed by switching to synchronous `subprocess.run()`.
+
+### Added
+
+- **XLS parser**: New `parse_xls()` function using `xlrd` for legacy Excel (.xls) support. Registered in `PARSERS`.
+- **Lazy model loading**: `SentenceTransformer` model is now loaded on first embedding generation instead of at module import time.
+
+### Changed
+
+- **Model cache check in installers**: `install_sentence_transformers()` now checks `~/.cache/huggingface/hub/` for the cached model instead of forcing a download during installation.
+
 ## [0.4.5] - 2026-04-28
 
 ### Added
