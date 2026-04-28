@@ -2,7 +2,7 @@
 
 **A fast, SQLite-like embedded vector database with graph-based approximate nearest neighbor search**
 
-[![Version](https://img.shields.io/badge/version-0.4.13-blue.svg)](https://github.com/pardus-ai/pardusdb)
+[![Version](https://img.shields.io/badge/version-0.4.14-blue.svg)](https://github.com/pardus-ai/pardusdb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.85-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org/)
@@ -57,7 +57,7 @@ cd pardusdb
 ./install.sh --install
 ```
 
-Copies the precompiled binary from `bin/pardus-v0.4.13` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
+Copies the precompiled binary from `bin/pardus-v0.4.14` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
 
 | | setup.sh | install.sh |
 |---|---|---|

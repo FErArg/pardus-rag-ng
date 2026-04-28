@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.13"
+VERSION="0.4.14"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}"
@@ -174,6 +174,9 @@ install_mcp() {
 
     echo "  Instalando paquete MCP de Python..."
     pip3 install mcp --quiet 2>/dev/null || pip3 install mcp --quiet --break-system-packages 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+
+    mcp_state=$(python3 -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "fallo")
+    echo "  - mcp (Python package): $mcp_state"
 
     echo "  MCP server instalado en: $MCP_DIR/server.py"
 }

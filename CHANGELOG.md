@@ -5,6 +5,15 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.14] - 2026-04-28
+
+### Changed
+
+- **Bumped version** to 0.4.14 across Cargo.toml, setup.sh, install.sh, SDKs, and MCP server.
+- **MCP package verification**: `install_mcp()` now verifies the `mcp` Python package was installed correctly, displaying OK/fallo status like other dependencies.
+- **Repository cleanup**: Added `.gitignore` (target/, *.pyc, __pycache__/, *.pardus). Removed orphaned files: nodesource_setup.sh, test_mcp_tools.py, unrelated docs (CELEX PDF, BOE summary), accidentally committed --version binary and __pycache__ bytecode.
+- **Docs**: Revised README.md and INSTALL.md with clearer setup.sh vs install.sh comparison tables.
+
 ## [0.4.13] - 2026-04-28
 
 ### Changed
