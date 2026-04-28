@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+pardusdb/__init__.py
+pardusdb/client.py
+pardusdb/errors.py
+pardusdb.egg-info/PKG-INFO
+pardusdb.egg-info/SOURCES.txt
+pardusdb.egg-info/dependency_links.txt
+pardusdb.egg-info/requires.txt
+pardusdb.egg-info/top_level.txt
+tests/test_pardusdb.py

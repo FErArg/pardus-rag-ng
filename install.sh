@@ -188,7 +188,7 @@ install_mcp() {
         PIP_CMD="python3 -m pip"
     fi
 
-    $PIP_CMD install mcp --quiet $pip_extra 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+    $PIP_CMD install mcp --quiet $pip_extra || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
 
     mcp_state=$(python3 -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "fallo")
     echo "  - mcp (Python package): $mcp_state"

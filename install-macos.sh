@@ -178,7 +178,7 @@ install_mcp() {
 
     "$MCP_DIR/venv/bin/pip" install --upgrade pip -q
 
-    if "$MCP_DIR/venv/bin/pip" install mcp -q 2>/dev/null; then
+    if "$MCP_DIR/venv/bin/pip" install mcp -q; then
         mcp_state="OK"
     else
         echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
