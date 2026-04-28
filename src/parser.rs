@@ -1143,14 +1143,37 @@ impl<'a> Parser<'a> {
         let start = self.pos;
         let mut end = start;
         let mut has_dot = false;
+        let mut has_e = false;
 
-        for ch in self.input[start..].chars() {
-            if ch == '-' && end == start {
+        // Collect characters into a Vec to handle indexing properly
+        let input_chars: Vec<char> = self.input[end..].chars().collect();
+        let mut char_idx = 0;
+
+        while char_idx < input_chars.len() {
+            let ch = input_chars[char_idx];
+            if ch == '-' && char_idx == 0 {
+                char_idx += 1;
                 end += 1;
             } else if ch == '.' && !has_dot {
                 has_dot = true;
+                char_idx += 1;
                 end += 1;
+            } else if (ch == 'e' || ch == 'E') && !has_e {
+                has_e = true;
+                char_idx += 1;
+                end += 1;
+            } else if (ch == '+' || ch == '-') && has_e && char_idx > 0 {
+                // This is a sign AFTER e (e.g., in "1e-3")
+                char_idx += 1; // consume the sign
+                end += 1;
+                // Now consume all following digits
+                while char_idx < input_chars.len() && input_chars[char_idx].is_ascii_digit() {
+                    char_idx += 1;
+                    end += 1;
+                }
+                break; // done with number
             } else if ch.is_ascii_digit() {
+                char_idx += 1;
                 end += 1;
             } else {
                 break;
@@ -1380,6 +1403,63 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_very_small_sci() {
+        // Test the problematic value with scientific notation
+        let mut p = Parser::new("-4.846275947008309e-33");
+        match p.read_number() {
+            Ok((n, _)) => println!("Parsed: {}", n),
+            Err(e) => panic!("Error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_scientific_notation() {
+        let mut p = Parser::new("1.5e-3");
+        match p.read_number() {
+            Ok((n, _)) => println!("Parsed 1.5e-3: {}", n),
+            Err(e) => panic!("Error parsing 1.5e-3: {:?}", e),
+        }
+
+        // Test with vector content: first skip '[' then parse
+        let mut p2 = Parser::new("[1.5e-3]");
+        p2.advance(); // skip '['
+        match p2.read_vector_content() {
+            Ok(vals) => println!("Parsed [1.5e-3]: vals={:?}", vals),
+            Err(e) => panic!("Error parsing [1.5e-3]: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_vector_with_sci_notation() {
+        // Test read_number on just "1e-3"
+        let mut p1 = Parser::new("1e-3");
+        match p1.read_number() {
+            Ok((n, _)) => println!("Direct: read_number('1e-3') = {}", n),
+            Err(e) => panic!("Direct: Error parsing '1e-3': {:?}", e),
+        }
+        
+        // Test with "[1e-3]" - parse_vector_content skips the '[' first
+        let mut p2 = Parser::new("[1e-3]");
+        // Manual step: skip the '['
+        p2.advance();
+        match p2.read_vector_content() {
+            Ok(vals) => {
+                assert_eq!(vals.len(), 1, "Expected 1 element, got {:?}", vals);
+            }
+            Err(e) => panic!("Error parsing '[1e-3]': {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_simple_number() {
+        let mut p = Parser::new("1.5");
+        match p.read_number() {
+            Ok((n, _)) => println!("Parsed 1.5: {}", n),
+            Err(e) => panic!("Error parsing 1.5: {:?}", e),
+        }
+    }
+
+    #[test]
     fn test_parse_order_by_desc() {
         let sql = "SELECT * FROM products ORDER BY price DESC;";
         let cmd = parse(sql).unwrap();
@@ -1390,6 +1470,26 @@ mod tests {
                 assert!(!ob.ascending);
             }
             _ => panic!("Expected Select"),
+        }
+    }
+
+    #[test]
+    fn test_parse_vector_scientific_notation() {
+        let sql = "INSERT INTO t (v) VALUES ([1.5e-3]);";
+        let cmd = parse(sql).unwrap();
+        
+        match cmd {
+            Command::Insert { values, .. } => {
+                assert_eq!(values.len(), 1);
+                assert_eq!(values[0].len(), 1);
+                match &values[0][0] {
+                    crate::schema::Value::Vector(vals) => {
+                        assert!((vals[0] - 0.0015).abs() < 1e-6, "Expected 0.0015, got {}", vals[0]);
+                    }
+                    other => panic!("Expected Vector, got {:?}", other),
+                }
+            }
+            _ => panic!("Expected Insert"),
         }
     }
 }

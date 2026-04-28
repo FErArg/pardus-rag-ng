@@ -123,7 +123,7 @@ db_client = PardusDBClient()
 # ==================== SQL Escaping Helpers ====================
 
 def sql_escape(s: str) -> str:
-    return s.replace("'", "''")
+    return s.replace("\\", "\\\\").replace("'", "''").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
 
 def sql_escape_path(path: str) -> str:
@@ -194,32 +194,9 @@ def get_table_schema(table: str) -> dict[str, Any]:
 
 def ensure_import_table(table: str, dim: int) -> None:
     safe_table = sql_safe_identifier(table)
-    create_sql = f"""CREATE TABLE IF NOT EXISTS {safe_table} (
-        embedding VECTOR({dim}),
-        filename TEXT,
-        content TEXT,
-        page INT,
-        file_type TEXT,
-        parent_doc_id INT,
-        doc_path TEXT,
-        chunk_index INT,
-        total_chunks INT,
-        title TEXT
-    )"""
+    create_sql = f"CREATE TABLE {safe_table} (embedding VECTOR({dim}), filename TEXT, content TEXT, page INT, file_type TEXT, parent_doc_id INT, doc_path TEXT, chunk_index INT, total_chunks INT, title TEXT)"
     db_client.execute(create_sql)
-    db_client.execute(f"""CREATE TABLE IF NOT EXISTS __import_log__ (
-        id INTEGER PRIMARY KEY,
-        table_name TEXT,
-        doc_path TEXT,
-        filename TEXT,
-        file_size INT,
-        file_hash TEXT,
-        content_hash TEXT,
-        imported_at TEXT,
-        total_parents INT,
-        total_children INT,
-        status TEXT
-    )""")
+    db_client.execute("CREATE TABLE __import_log__ (id INTEGER PRIMARY KEY, table_name TEXT, doc_path TEXT, filename TEXT, file_size INT, file_hash TEXT, content_hash TEXT, imported_at TEXT, total_parents INT, total_children INT, status TEXT)")
 
 
 def log_import(
@@ -480,9 +457,12 @@ async def handle_create_database(args: dict[str, Any]) -> dict[str, Any]:
         if parent and not parent.exists():
             parent.mkdir(parents=True, exist_ok=True)
         db_client.set_db_path(db_path)
-        import shlex
-        db_client.execute(f".create {shlex.quote(db_path)}")
-        return {"content": [{"type": "text", "text": f"Database created successfully at: {db_path}"}]}
+        if Path(db_path).exists():
+            db_client.execute(f".open {db_path}")
+            return {"content": [{"type": "text", "text": f"Database opened (already exists): {db_path}"}]}
+        else:
+            db_client.execute(f".create {db_path}")
+            return {"content": [{"type": "text", "text": f"Database created successfully at: {db_path}"}]}
     except Exception as e:
         return {"content": [{"type": "text", "text": f"Error creating database: {e}"}], "isError": True}
 
@@ -520,7 +500,7 @@ async def handle_create_table(args: dict[str, Any]) -> dict[str, Any]:
                 safe_col = sql_safe_identifier(col_name)
                 sql_type = type_map.get(col_type.lower(), col_type.upper())
                 columns.append(f"{safe_col} {sql_type}")
-        sql = f"CREATE TABLE IF NOT EXISTS {safe_name} ({', '.join(columns)})"
+        sql = f"CREATE TABLE {safe_name} ({', '.join(columns)})"
         db_client.execute(sql)
         db_client.set_current_table(name)
         return {"content": [{"type": "text", "text": f"Table '{name}' created successfully with {vector_dim}-dimensional vectors.\n\nSQL: {sql}"}]}
@@ -781,10 +761,10 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
 
             zero_vec = [0.0] * vector_dim
             zero_vec_str = f"[{', '.join(str(x) for x in zero_vec)}]"
-            title_esc = title.replace("'", "''")
-            fpath_esc = fpath.replace("'", "''")
-            fname_esc = file_path.name.replace("'", "''")
-            content_esc = content.replace("'", "''")
+            title_esc = sql_escape(title)
+            fpath_esc = sql_escape(fpath)
+            fname_esc = sql_escape(file_path.name)
+            content_esc = sql_escape(content)
             parent_sql = (f"INSERT INTO {safe_table} (embedding, filename, content, page, file_type, "
                          f"parent_doc_id, doc_path, chunk_index, total_chunks, title) "
                          f"VALUES ({zero_vec_str}, '{fname_esc}', '{content_esc}', "
@@ -799,7 +779,7 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
                 chunk_vec_str = f"[{', '.join(str(x) for x in chunk_vec)}]"
                 chunk_content = page_data.get("content", "")
                 page_num = page_data.get("page", 0)
-                chunk_esc = chunk_content.replace("'", "''")
+                chunk_esc = sql_escape(chunk_content)
                 child_sql = (f"INSERT INTO {safe_table} (embedding, filename, content, page, file_type, "
                              f"parent_doc_id, doc_path, chunk_index, total_chunks, title) "
                              f"VALUES ({chunk_vec_str}, '{fname_esc}', '{chunk_esc}', "

@@ -77,7 +77,7 @@ fn run_with_file(path: &str) {
                         print!("\x1B[2J\x1B[1;1H");
                     }
                     _ if cmd.starts_with("open ") || cmd.starts_with("create ") => {
-                        println!("Error: Cannot open/create a database from within a database session. Use '.quit' first.");
+                        println!("Note: Database already open. Use '.quit' to close and open a different one.");
                     }
                     _ => {
                         if input.starts_with('.') {
