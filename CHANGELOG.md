@@ -5,6 +5,15 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.15] - 2026-04-28
+
+### Changed
+
+- **Bumped version** to 0.4.15 across Cargo.toml, setup.sh, install.sh, SDKs, and MCP server.
+- **Platform-specific binaries**: Binaries are now suffixed with platform and architecture. Linux x86_64: `bin/pardus-v{VERSION}-linux-x86_64`, macOS ARM64: `bin/pardus-v{VERSION}-darwin-arm64`. `setup.sh` saves with the correct suffix for the current platform.
+- **install.sh**: Now searches for `bin/pardus-v{VERSION}-linux-x86_64` (Linux precompiled binary).
+- **install-macos.sh**: Now searches for `bin/pardus-v{VERSION}-darwin-arm64` (macOS precompiled binary). Shows a clear error if the macOS binary is not found: "Compile on your Mac with cargo build --release and copy to bin/pardus-v{VERSION}-darwin-arm64".
+
 ## [0.4.14] - 2026-04-28
 
 ### Changed

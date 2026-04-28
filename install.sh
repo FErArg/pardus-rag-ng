@@ -3,10 +3,13 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.14"
+VERSION="0.4.15"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
-BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}"
+OS=$(uname -s)
+ARCH=$(uname -m)
+PLATFORM_SUFFIX="${OS,,}-${ARCH}"
+BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}-${PLATFORM_SUFFIX}"
 INSTALL_DIR="$HOME/.local/bin"
 PARDUS_HOME="$HOME/.pardus"
 CONFIG_DIR="$HOME/.config/pardus"

@@ -3,10 +3,13 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.14"
+VERSION="0.4.15"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
-BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}"
+OS=$(uname -s)
+ARCH=$(uname -m)
+PLATFORM_SUFFIX="${OS,,}-${ARCH}"
+BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}-${PLATFORM_SUFFIX}"
 INSTALL_DIR="$HOME/.local/bin"
 PARDUS_HOME="$HOME/.pardus"
 CONFIG_DIR="$HOME/.config/pardus"
@@ -145,8 +148,9 @@ install_binary() {
     if [ ! -f "$BINARY_SOURCE" ]; then
         echo "ERROR: Binario precompilado no encontrado: $BINARY_SOURCE"
         echo ""
-        echo "Este script requiere que el binario este precompilado."
-        echo "Ejecuta './setup.sh --install' primero para compilar desde fuente."
+        echo "Este script requiere el binario para tu plataforma (macOS ARM64)."
+        echo "Compila en tu Mac con: cargo build --release"
+        echo "Y copia el binario a: bin/pardus-v${VERSION}-darwin-arm64"
         exit 1
     fi
 

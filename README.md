@@ -2,7 +2,7 @@
 
 **A fast, SQLite-like embedded vector database with graph-based approximate nearest neighbor search**
 
-[![Version](https://img.shields.io/badge/version-0.4.14-blue.svg)](https://github.com/pardus-ai/pardusdb)
+[![Version](https://img.shields.io/badge/version-0.4.15-blue.svg)](https://github.com/pardus-ai/pardusdb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.85-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org/)
@@ -57,7 +57,7 @@ cd pardusdb
 ./install.sh --install
 ```
 
-Copies the precompiled binary from `bin/pardus-v0.4.14` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
+Copies the precompiled binary from `bin/pardus-v0.4.15-linux-x86_64` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
 
 ### Option 3: install-macos.sh — macOS with venv-based MCP (auto-installs Python 3.10+ if needed)
 
@@ -67,14 +67,14 @@ cd pardusdb
 ./install-macos.sh --install
 ```
 
-Uses the precompiled binary from `bin/pardus-v0.4.14` (no Rust compilation). Installs the MCP server inside a Python virtual environment (`~/.pardus/mcp/venv/`). **If Python < 3.10 is detected, automatically offers to install Python 3.13 via Homebrew.** If Homebrew is not available, displays installation instructions and exits.
+Requires the precompiled macOS binary `bin/pardus-v0.4.15-darwin-arm64` in the repo. If not present, compile on your Mac with `cargo build --release` and copy to that path. Installs the MCP server inside a Python virtual environment (`~/.pardus/mcp/venv/`). **If Python < 3.10 is detected, automatically offers to install Python 3.13 via Homebrew.**
 
 | | setup.sh | install.sh | install-macos.sh |
 |---|---|---|---|
-| Requires Rust | Yes (auto-installed) | No | **No** |
+| Requires Rust | Yes (auto-installed) | No | No |
 | Requires Python 3.10+ | No | No | **Yes (auto-installed via Homebrew)** |
-| Compiles source | Yes | No | No |
-| Binary from | `target/release/` | `bin/pardus-v*` | `bin/pardus-v*` |
+| Compiles source | Yes | No | **Only if macOS binary missing** |
+| Binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` |
 | MCP installation | global pip | global pip | virtual environment |
 | macOS compatibility | Partial | Partial | **Recommended** |
 | Speed | ~1-3 min | <1 sec | <1 sec + Python install if needed |

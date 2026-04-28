@@ -1249,7 +1249,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.14")
+server = Server("pardusdb-mcp", "0.4.15")
 
 
 @server.list_tools()

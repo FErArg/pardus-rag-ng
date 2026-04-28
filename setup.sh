@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.14"
+VERSION="0.4.15"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 INSTALL_DIR="$HOME/.local/bin"
@@ -141,10 +141,10 @@ build_binary() {
     echo "Binario construido correctamente."
 
     echo ""
-    echo "[1/10] Guardando binario en bin/pardus-v${VERSION}..."
+    echo "[1/10] Guardando binario en bin/pardus-v${VERSION}-${PLATFORM}-$(uname -m)..."
     mkdir -p "$BIN_OUT_DIR"
-    cp "target/release/$BINARY_NAME" "$BIN_OUT_DIR/pardus-v${VERSION}"
-    echo "  Binario guardado en: $BIN_OUT_DIR/pardus-v${VERSION}"
+    cp "target/release/$BINARY_NAME" "$BIN_OUT_DIR/pardus-v${VERSION}-${PLATFORM}-$(uname -m)"
+    echo "  Binario guardado en: $BIN_OUT_DIR/pardus-v${VERSION}-${PLATFORM}-$(uname -m)"
 }
 
 install_binary() {
