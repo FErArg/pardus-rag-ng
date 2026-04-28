@@ -1,6 +1,6 @@
 //! PardusDB - A single-file embedded vector database with SQL-like interface.
 
-use std::io::{self, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use pardusdb::{Database, ExecuteResult};
@@ -24,10 +24,73 @@ fn run_with_file(path: &str) {
         Ok(mut db) => {
             println!("Database opened successfully.\n");
 
-            if let Err(e) = db.save() {
-                println!("Error saving database: {}", e);
-            } else {
-                println!("\nDatabase saved to: {}", path);
+            let stdin = io::stdin();
+            let mut lines = BufReader::new(stdin.lock()).lines().map(|r| r.unwrap_or_default()).peekable();
+
+            if lines.peek().is_none() {
+                if let Err(e) = db.save() {
+                    println!("Error saving database: {}", e);
+                } else {
+                    println!("\nDatabase saved to: {}", path);
+                }
+                return;
+            }
+
+            for line in lines {
+                let input = line.trim();
+                if input.is_empty() {
+                    continue;
+                }
+
+                let cmd = if input.starts_with('.') {
+                    &input[1..]
+                } else {
+                    input
+                };
+
+                match cmd {
+                    "quit" | "exit" | "q" => {
+                        if let Err(e) = db.save() {
+                            println!("Error saving: {}", e);
+                        } else {
+                            println!("Saved to: {}", path);
+                        }
+                        break;
+                    }
+                    "save" => {
+                        if let Err(e) = db.save() {
+                            println!("Error saving: {}", e);
+                        } else {
+                            println!("Saved to: {}", path);
+                        }
+                    }
+                    "tables" => {
+                        match db.execute("SHOW TABLES;") {
+                            Ok(result) => println!("{}", result),
+                            Err(e) => println!("Error: {}", e),
+                        }
+                    }
+                    "help" | "?" => {
+                        print_help();
+                    }
+                    "clear" | "cls" => {
+                        print!("\x1B[2J\x1B[1;1H");
+                    }
+                    _ if cmd.starts_with("open ") || cmd.starts_with("create ") => {
+                        println!("Error: Cannot open/create a database from within a database session. Use '.quit' first.");
+                    }
+                    _ => {
+                        if input.starts_with('.') {
+                            println!("Unknown command: {}", input);
+                            println!("Type 'help' for available commands.");
+                        } else {
+                            match db.execute(input) {
+                                Ok(result) => println!("{}", result),
+                                Err(e) => println!("Error: {}", e),
+                            }
+                        }
+                    }
+                }
             }
         }
         Err(e) => println!("Error opening database: {}", e),

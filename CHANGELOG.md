@@ -5,6 +5,16 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.12] - 2026-04-28
+
+### Fixed
+
+- **Persistence bug (critical)**: `run_with_file()` previously opened the database and immediately saved/closed it without processing any commands. Every MCP call spawned a new process that opened the file, ran zero SQL commands, and exited without persisting. Now `run_with_file()` enters a REPL-like loop reading from stdin — processes SQL commands, calls `save()` on quit (`.quit`, `quit`, `exit`), ensuring all changes persist to disk. Data now survives close/reopen cycles.
+
+### Changed
+
+- `run_with_file()` now reads stdin line-by-line and executes commands until `quit`, matching REPL behavior with auto-save on exit.
+
 ## [0.4.11] - 2026-04-28
 
 ### Fixed
