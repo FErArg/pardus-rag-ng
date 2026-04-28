@@ -599,6 +599,33 @@ async def handle_search_similar(args: dict[str, Any]) -> dict[str, Any]:
         return {"content": [{"type": "text", "text": f"Error searching: {e}"}], "isError": True}
 
 
+async def handle_search_text(args: dict[str, Any]) -> dict[str, Any]:
+    query = args.get("query")
+    k = args.get("k", 10)
+    table = args.get("table") or db_client.get_current_table()
+    vector_dim = args.get("vector_dim", DEFAULT_VECTOR_DIM)
+
+    if not query or not isinstance(query, str):
+        return {"content": [{"type": "text", "text": "Error: query string is required"}], "isError": True}
+    if not table:
+        return {"content": [{"type": "text", "text": "Error: No table specified"}], "isError": True}
+
+    try:
+        query_vector = generate_embedding(query, vector_dim)
+        if all(v == 0.0 for v in query_vector) and HAS_EMBEDDER:
+            return {"content": [{"type": "text", "text": "Error: Failed to generate embedding for query"}], "isError": True}
+
+        safe_table = sql_safe_identifier(table)
+        vector_str = f"[{', '.join(str(x) for x in query_vector)}]"
+        sql = f"SELECT * FROM {safe_table} WHERE embedding SIMILARITY {vector_str} LIMIT {k}"
+        result = db_client.execute(sql)
+        return {"content": [{"type": "text", "text": f"Search Results for '{query}':\n\n{result}"}]}
+    except ValueError as e:
+        return {"content": [{"type": "text", "text": f"Invalid input: {e}"}], "isError": True}
+    except Exception as e:
+        return {"content": [{"type": "text", "text": f"Error searching: {e}"}], "isError": True}
+
+
 async def handle_execute_sql(args: dict[str, Any]) -> dict[str, Any]:
     sql = args.get("sql")
     if not sql:
@@ -1106,6 +1133,20 @@ TOOLS = [
         },
     ),
     Tool(
+        name="pardusdb_search_text",
+        description="Search for vectors similar to a text query using semantic similarity. Generates an embedding from the text and searches the database.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The text query to search for"},
+                "k": {"type": "number", "description": "Number of results (default: 10)"},
+                "table": {"type": "string", "description": "Table name (uses current table if not specified)"},
+                "vector_dim": {"type": "number", "description": f"Embedding dimension (default: {DEFAULT_VECTOR_DIM})"},
+            },
+            "required": ["query"],
+        },
+    ),
+    Tool(
         name="pardusdb_execute_sql",
         description="Execute raw SQL commands on the database",
         inputSchema={
@@ -1197,7 +1238,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.12")
+server = Server("pardusdb-mcp", "0.4.13")
 
 
 @server.list_tools()
@@ -1221,6 +1262,8 @@ async def call_tool(name: str, args: dict[str, Any]) -> list[TextContent]:
         result = await handle_batch_insert(args)
     elif name == "pardusdb_search_similar":
         result = await handle_search_similar(args)
+    elif name == "pardusdb_search_text":
+        result = await handle_search_text(args)
     elif name == "pardusdb_execute_sql":
         result = await handle_execute_sql(args)
     elif name == "pardusdb_list_tables":

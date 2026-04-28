@@ -64,6 +64,7 @@ All these files must be updated together when bumping version:
 - `Cargo.toml` (line 3)
 - `mcp/package.json` (line 3)
 - `mcp/src/index.ts` (line 611)
+- `mcp/src/server.py` (line 1232 - `Server("pardusdb-mcp", "0.x.y")`)
 - `sdk/python/pyproject.toml` (line 7)
 - `sdk/typescript/pardusdb/package.json` (line 3)
 
