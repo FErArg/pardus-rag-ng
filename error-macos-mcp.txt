@@ -101,3 +101,18 @@ Helper instalado en: /Users/fernando/.local/bin/pardus
 fernando@Qatium-C6VKVF97WW pardus-rag % cd
 fernando@Qatium-C6VKVF97WW ~ % python3 .pardus/mcp/server.py
 Error: mcp package not found. Install with: pip install mcp
+
+
+
+
+
+
+
+
+ernando@Qatium-C6VKVF97WW ~ % cd .pardus/mcp
+fernando@Qatium-C6VKVF97WW mcp % ls
+run_mcp.sh	server.py	venv
+fernando@Qatium-C6VKVF97WW mcp % ./run_mcp.sh
+Error: mcp package not found.
+On macOS, run this script via ~/.pardus/mcp/run_mcp.sh, not directly with python3.
+(The installer creates a virtual environment that contains the mcp package.)
