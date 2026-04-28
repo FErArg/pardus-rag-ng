@@ -5,6 +5,15 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-04-28
+
+### Added
+
+- **Document dependency installer**: New `install_document_dependencies()` function in `setup.sh` and `install.sh` that optionally installs pypdf (PDF), python-docx (DOCX), openpyxl (XLSX), and xlrd (XLS) for full document import support. Interactive prompt (s/N).
+- **sentence-transformers installer**: New `install_sentence_transformers()` function in both installers for automatic embeddings during document import. Installs the `all-MiniLM-L6-v2` model (~80MB). Interactive prompt (s/N).
+- **Optional dependencies**: Both functions are optional — users choose whether to install heavy dependencies like sentence-transformers.
+- **Dependency verification**: Installation summary now checks and reports the status of each optional Python package (pypdf, docx, openpyxl, xlrd, sentence-transformers).
+
 ## [0.4.4] - 2026-04-28
 
 ### Fixed

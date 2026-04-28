@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.4"
+VERSION="0.4.5"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}"
@@ -82,7 +82,7 @@ check_prerequisites() {
 }
 
 install_binary() {
-    echo "[1/6] Instalando binario..."
+    echo "[1/9] Instalando binario..."
 
     if [ ! -f "$BINARY_SOURCE" ]; then
         echo "ERROR: Binario precompilado no encontrado: $BINARY_SOURCE"
@@ -117,7 +117,7 @@ install_binary() {
 }
 
 create_helper() {
-    echo "[2/6] Creando helper 'pardus'..."
+    echo "[2/9] Creando helper 'pardus'..."
 
     cat > "$INSTALL_DIR/$HELPER_NAME" << 'HELPER_SCRIPT'
 #!/bin/bash
@@ -143,7 +143,7 @@ HELPER_SCRIPT
 }
 
 create_config() {
-    echo "[3/6] Creando archivo de configuracion..."
+    echo "[3/9] Creando archivo de configuracion..."
 
     mkdir -p "$CONFIG_DIR"
 
@@ -161,7 +161,7 @@ CONFIG_EOF
 }
 
 install_mcp() {
-    echo "[4/7] Instalando servidor MCP (Python)..."
+    echo "[4/9] Instalando servidor MCP (Python)..."
 
     if [ ! -f "$SCRIPT_DIR/mcp/src/server.py" ]; then
         echo "  ADVERTENCIA: mcp/src/server.py no encontrado, saltando MCP server"
@@ -178,8 +178,50 @@ install_mcp() {
     echo "  MCP server instalado en: $MCP_DIR/server.py"
 }
 
+install_document_dependencies() {
+    echo "[5/9] Instalando dependencias para importar documentos..."
+
+    echo -n "  Instalar librerias para importar PDF, DOCX, XLSX, XLS? (s/N): "
+    read -r respuesta
+    if [ "$respuesta" != "s" ] && [ "$respuesta" != "S" ]; then
+        echo "  Omitido. Los formatos faltantes se saltearan al importar."
+        return
+    fi
+
+    pip3 install pypdf --quiet 2>/dev/null || pip3 install pypdf --quiet --break-system-packages 2>/dev/null
+    echo "  - pypdf (PDF): $(python3 -c 'import pypdf; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install python-docx --quiet 2>/dev/null || pip3 install python-docx --quiet --break-system-packages 2>/dev/null
+    echo "  - python-docx (DOCX): $(python3 -c 'import docx; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install openpyxl --quiet 2>/dev/null || pip3 install openpyxl --quiet --break-system-packages 2>/dev/null
+    echo "  - openpyxl (XLSX): $(python3 -c 'import openpyxl; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install xlrd --quiet 2>/dev/null || pip3 install xlrd --quiet --break-system-packages 2>/dev/null
+    echo "  - xlrd (XLS antiguo): $(python3 -c 'import xlrd; print("OK")' 2>/dev/null || echo 'fallo')"
+}
+
+install_sentence_transformers() {
+    echo "[6/9] Instalando sentence-transformers para embeddings automaticos..."
+
+    echo -n "  Instalar sentence-transformers (recomendado, ~80MB)? (s/N): "
+    read -r respuesta
+    if [ "$respuesta" != "s" ] && [ "$respuesta" != "S" ]; then
+        echo "  Omitido. Los embeddings se guardaran como vectores cero."
+        return
+    fi
+
+    pip3 install sentence-transformers --quiet 2>/dev/null || pip3 install sentence-transformers --quiet --break-system-packages 2>/dev/null
+
+    if python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" 2>/dev/null; then
+        echo "  - sentence-transformers (all-MiniLM-L6-v2, 384-dim): OK"
+    else
+        echo "  - sentence-transformers: instalado, modelo se descargara al primer uso"
+    fi
+}
+
 configure_opencode() {
-    echo "[5/7] Configurando OpenCode..."
+    echo "[7/9] Configurando OpenCode..."
 
     if [ ! -f "$MCP_DIR/server.py" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
@@ -257,7 +299,7 @@ JSONEOF
 }
 
 install_python_sdk() {
-    echo "[6/7] Instalando SDK Python..."
+    echo "[8/9] Instalando SDK Python..."
 
     if [ ! -d "$SCRIPT_DIR/sdk/python" ]; then
         echo "  ADVERTENCIA: Directorio sdk/python/ no encontrado, saltando SDK Python"
@@ -276,7 +318,7 @@ install_python_sdk() {
 }
 
 create_data_dir() {
-    echo "[7/7] Creando directorio de datos..."
+    echo "[9/9] Creando directorio de datos..."
 
     mkdir -p "$DATA_DIR"
 
@@ -309,6 +351,16 @@ verify_installation() {
     echo "  pardusdb                  # Binario directo (in-memory)"
     echo "  pardusdb mi.db            # Abre archivo especifico"
     echo ""
+    echo "Dependencias Python para importacion de documentos:"
+    for pkg in pypdf docx openpyxl xlrd; do
+        state=$(python3 -c "import $pkg; print('OK')" 2>/dev/null || echo "no instalado")
+        echo "  - $pkg: $state"
+    done
+    echo ""
+    echo "Embeddings automaticos:"
+    st_state=$(python3 -c "from sentence_transformers import SentenceTransformer; print('OK')" 2>/dev/null || echo "no instalado")
+    echo "  - sentence-transformers: $st_state"
+    echo ""
     echo "Para usar el MCP server con OpenCode, ver INSTALL.md"
     echo ""
 }
@@ -319,6 +371,8 @@ do_install() {
     create_helper
     create_config
     install_mcp
+    install_document_dependencies
+    install_sentence_transformers
     configure_opencode
     install_python_sdk
     create_data_dir

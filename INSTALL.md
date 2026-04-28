@@ -34,7 +34,7 @@ If you already have a precompiled binary and want a faster installation (no Rust
 ./install.sh --install
 ```
 
-This copies `bin/pardus-v0.4.4` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
+This copies `bin/pardus-v0.4.5` to `~/.local/bin/pardusdb` and installs the MCP server, Python SDK, and configuration.
 
 ---
 
@@ -242,7 +242,7 @@ Imports files from a directory and stores them as vector-searchable documents wi
 Multi-page files (PDF) and multi-paragraph files (DOCX) create one parent document plus one child fragment per page/paragraph.
 Tabular files (CSV, XLSX) create one parent plus one child per row.
 
-**Supported formats:** PDF, CSV, DOCX, XLSX, JSON, JSONL, MD, TXT
+**Supported formats:** PDF, CSV, DOCX, XLSX, XLS, JSON, JSONL, MD, TXT
 
 **Parent-child structure:** Each imported file creates a parent record (`page=0`, `parent_doc_id=NULL`) plus one child record per page/paragraph/row, linked via `parent_doc_id`. Additional fields track the relationship: `chunk_index`, `total_chunks`, `filename`, `title`, and `doc_path`.
 
@@ -253,9 +253,16 @@ pip install sentence-transformers  # automatic embeddings (recommended, all-Mini
 pip install pypdf                  # PDF support
 pip install python-docx            # DOCX support
 pip install openpyxl               # XLSX support
+pip install xlrd                   # XLS (Excel 97-2003) support
 ```
 
 If `sentence-transformers` is not installed, vectors are stored as zeros. If a format library is missing, files of that type are skipped with a warning.
+
+**Optional dependency installers in setup.sh/install.sh:**
+
+Both `setup.sh` and `install.sh` include optional steps to install these dependencies interactively:
+- `install_document_dependencies()` — Installs pypdf, python-docx, openpyxl, xlrd for document parsing
+- `install_sentence_transformers()` — Installs sentence-transformers for automatic embeddings (model `all-MiniLM-L6-v2`, ~80MB, requires confirmation interactiva)
 
 **Usage examples:**
 
