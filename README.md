@@ -15,8 +15,8 @@ While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no
 
 - [FErArg](https://ferarg.com) — *Individual contributor*
 - **Deepseek** — *AI research and development*
-- **Miramax** — *Individual contributor*
-- **Kimi** — *Individual contributor*
+- **Miramax** — *AI research and development*
+
 
 ## Features
 
