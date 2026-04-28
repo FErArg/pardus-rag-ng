@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **install.sh**: Now searches for `bin/pardus-v{VERSION}-linux-x86_64` (Linux precompiled binary).
 - **install-macos.sh**: Now searches for `bin/pardus-v{VERSION}-darwin-arm64` (macOS precompiled binary). Shows a clear error if the macOS binary is not found: "Compile on your Mac with cargo build --release and copy to bin/pardus-v{VERSION}-darwin-arm64".
 
+### Fixed
+
+- **import_text auto-creates table**: `handle_import_text` now unconditionally calls `ensure_import_table()` before importing, instead of using a fragile SELECT-based existence check. `CREATE TABLE IF NOT EXISTS` is idempotent, so this is safe even if the table already exists.
+
 ## [0.4.14] - 2026-04-28
 
 ### Changed
