@@ -704,28 +704,44 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
         total_chunks = len(pages) if pages else 1
 
         try:
-            parent_embedding = generate_embedding(content, vector_dim)
-            vec_str = f"[{', '.join(str(x) for x in parent_embedding)}]"
+            page_texts = [p.get("content", "") for p in pages]
+            if page_texts and HAS_EMBEDDER:
+                embedder = get_embedder()
+                if embedder:
+                    try:
+                        vecs = embedder.encode(page_texts, convert_to_numpy=True, normalize_embeddings=True)
+                        vecs = vecs.tolist() if hasattr(vecs, 'tolist') else list(vecs)
+                        if len(vecs) != len(page_texts) or (vecs and len(vecs[0]) != vector_dim):
+                            vecs = [[0.0] * vector_dim] * len(page_texts)
+                    except Exception as e:
+                        print(f"[embedder] batch encode error for {file_path.name}: {e}", file=sys.stderr)
+                        vecs = [[0.0] * vector_dim] * len(page_texts)
+                else:
+                    vecs = [[0.0] * vector_dim] * len(page_texts)
+            else:
+                vecs = [[0.0] * vector_dim] * len(page_texts)
+
+            zero_vec = [0.0] * vector_dim
+            zero_vec_str = f"[{', '.join(str(x) for x in zero_vec)}]"
             title_esc = title.replace("'", "''")
             fpath_esc = fpath.replace("'", "''")
             fname_esc = file_path.name.replace("'", "''")
-            content_esc = content[:5000].replace("'", "''").replace("\n", " ").replace("\r", " ")
-            sql = (f"INSERT INTO {table} (embedding, filename, content, page, file_type, "
-                   f"parent_doc_id, doc_path, chunk_index, total_chunks, title) "
-                   f"VALUES ({vec_str}, '{fname_esc}', '{content_esc}', "
-                   f"0, '{ext[1:]}', NULL, '{fpath_esc}', 0, {total_chunks}, '{title_esc}')")
-            result = db_client.execute(sql)
+            content_esc = content.replace("'", "''")
+            parent_sql = (f"INSERT INTO {table} (embedding, filename, content, page, file_type, "
+                         f"parent_doc_id, doc_path, chunk_index, total_chunks, title) "
+                         f"VALUES ({zero_vec_str}, '{fname_esc}', '{content_esc}', "
+                         f"0, '{ext[1:]}', NULL, '{fpath_esc}', 0, {total_chunks}, '{title_esc}')")
+            result = db_client.execute(parent_sql)
             parent_id = parse_id_from_result(result)
-
             if parent_id is None:
                 parent_id = -1
 
             for chunk_idx, page_data in enumerate(pages):
+                chunk_vec = vecs[chunk_idx] if chunk_idx < len(vecs) else [0.0] * vector_dim
+                chunk_vec_str = f"[{', '.join(str(x) for x in chunk_vec)}]"
                 chunk_content = page_data.get("content", "")
                 page_num = page_data.get("page", 0)
-                chunk_emb = generate_embedding(chunk_content, vector_dim)
-                chunk_vec_str = f"[{', '.join(str(x) for x in chunk_emb)}]"
-                chunk_esc = chunk_content[:5000].replace(chr(10), ' ').replace("'", "''")
+                chunk_esc = chunk_content.replace("'", "''")
                 child_sql = (f"INSERT INTO {table} (embedding, filename, content, page, file_type, "
                              f"parent_doc_id, doc_path, chunk_index, total_chunks, title) "
                              f"VALUES ({chunk_vec_str}, '{fname_esc}', '{chunk_esc}', "
@@ -1131,7 +1147,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.6")
+server = Server("pardusdb-mcp", "0.4.7")
 
 
 @server.list_tools()

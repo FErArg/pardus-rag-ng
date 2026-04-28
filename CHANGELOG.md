@@ -5,6 +5,18 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.7] - 2026-04-28
+
+### Fixed
+
+- **Content truncation removed**: Document content was being truncated to 5000 characters before inserting. Now inserts the full content of each document.
+- **Batch embeddings**: All page/chunk embeddings for a file are now generated in a single `embedder.encode()` batch call instead of one call per fragment. For a 50-page PDF: ~51 calls → 1 call.
+- **Parent embedding dropped**: Parent records now get a zero vector. Only child records (actual page/paragraph chunks) receive real embeddings, making similarity searches more accurate.
+
+### Changed
+
+- Optimized import pipeline for multi-page documents (PDF, DOCX) — significant speedup and better vector quality.
+
 ## [0.4.6] - 2026-04-28
 
 ### Fixed
