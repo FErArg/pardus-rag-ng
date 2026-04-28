@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="0.4.14"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
+BINARY_SOURCE="$SCRIPT_DIR/bin/pardus-v${VERSION}"
 INSTALL_DIR="$HOME/.local/bin"
 PARDUS_HOME="$HOME/.pardus"
 CONFIG_DIR="$HOME/.config/pardus"
@@ -14,10 +15,10 @@ MCP_DIR="$PARDUS_HOME/mcp"
 
 show_help() {
     cat << EOF
-PardusDB v${VERSION} - Instalador para macOS
+PardusDB v${VERSION} - Instalador (binario precompilado)
 
 USO:
-    ./install-macos.sh [OPCION]
+    ./install.sh [OPCION]
 
 OPCIONES:
     --install     Instalar PardusDB (por defecto)
@@ -25,14 +26,14 @@ OPCIONES:
     --help        Mostrar esta ayuda
 
 INSTALACION:
-    Compila PardusDB desde fuente con Rust, o usa un binario
-    precompilado en bin/pardus-v${VERSION} si existe.
+    Instala PardusDB usando el binario precompilado en bin/pardus-v${VERSION}.
+    No requiere Rust ni compilacion.
 
     Rutas de instalacion:
       - Binario:     ~/.local/bin/pardusdb
       - Helper:      ~/.local/bin/pardus
       - Datos BD:    ~/.pardus/
-      - MCP Server:  ~/.pardus/mcp/ (con virtual environment)
+      - MCP Server:  ~/.pardus/mcp/
 
 DESINSTALACION:
     Elimina todos los archivos instalados incluyendo
@@ -52,7 +53,7 @@ detect_shell() {
 
 check_prerequisites() {
     echo "==================================="
-    echo "   PardusDB v${VERSION} - macOS"
+    echo "   PardusDB v${VERSION} Installer"
     echo "==================================="
     echo ""
 
@@ -62,8 +63,8 @@ check_prerequisites() {
         missing+=("Python 3 (python3) - instalar desde https://python.org/")
     fi
 
-    if ! command -v cargo &> /dev/null; then
-        missing+=("Rust (cargo) - instalar desde https://rustup.rs/")
+    if ! command -v pip3 &> /dev/null && ! command -v pip &> /dev/null; then
+        missing+=("pip - se instala con Python")
     fi
 
     if [ ${#missing[@]} -ne 0 ]; then
@@ -80,26 +81,16 @@ check_prerequisites() {
     echo ""
 }
 
-build_binary() {
-    echo "[1/7] Construyendo binario Rust (release mode)..."
+install_binary() {
+    echo "[1/9] Instalando binario..."
 
-    cargo build --release 2>/dev/null
-
-    if [ ! -f "target/release/$BINARY_NAME" ]; then
-        echo "Error: La compilacion del binario fallo."
+    if [ ! -f "$BINARY_SOURCE" ]; then
+        echo "ERROR: Binario precompilado no encontrado: $BINARY_SOURCE"
+        echo ""
+        echo "Este script requiere que el binario este precompilado."
+        echo "Ejecuta './setup.sh --install' primero para compilar desde fuente."
         exit 1
     fi
-    echo "Binario construido correctamente."
-
-    echo ""
-    echo "[1/7] Guardando binario en bin/pardus-v${VERSION}..."
-    mkdir -p "$SCRIPT_DIR/bin"
-    cp "target/release/$BINARY_NAME" "$SCRIPT_DIR/bin/pardus-v${VERSION}"
-    echo "  Binario guardado en: $SCRIPT_DIR/bin/pardus-v${VERSION}"
-}
-
-install_binary() {
-    echo "[2/7] Instalando binario..."
 
     mkdir -p "$INSTALL_DIR"
 
@@ -107,7 +98,7 @@ install_binary() {
         rm -f "$INSTALL_DIR/$BINARY_NAME"
     fi
 
-    cp "target/release/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+    cp "$BINARY_SOURCE" "$INSTALL_DIR/$BINARY_NAME"
     chmod +x "$INSTALL_DIR/$BINARY_NAME"
 
     if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
@@ -126,7 +117,7 @@ install_binary() {
 }
 
 create_helper() {
-    echo "[3/7] Creando helper 'pardus'..."
+    echo "[2/9] Creando helper 'pardus'..."
 
     cat > "$INSTALL_DIR/$HELPER_NAME" << 'HELPER_SCRIPT'
 #!/bin/bash
@@ -152,7 +143,7 @@ HELPER_SCRIPT
 }
 
 create_config() {
-    echo "[4/7] Creando archivo de configuracion..."
+    echo "[3/9] Creando archivo de configuracion..."
 
     mkdir -p "$CONFIG_DIR"
 
@@ -170,7 +161,7 @@ CONFIG_EOF
 }
 
 install_mcp() {
-    echo "[5/7] Instalando servidor MCP (Python)..."
+    echo "[4/9] Instalando servidor MCP (Python)..."
 
     if [ ! -f "$SCRIPT_DIR/mcp/src/server.py" ]; then
         echo "  ADVERTENCIA: mcp/src/server.py no encontrado, saltando MCP server"
@@ -195,7 +186,6 @@ install_mcp() {
     fi
     echo "  - mcp (Python package): $mcp_state"
 
-    # Crear wrapper script
     cat > "$MCP_DIR/run_mcp.sh" << WRAPPER_EOF
 #!/bin/bash
 exec $MCP_DIR/venv/bin/python $MCP_DIR/server.py
@@ -206,13 +196,60 @@ WRAPPER_EOF
     echo "  Wrapper: $MCP_DIR/run_mcp.sh"
 }
 
+install_document_dependencies() {
+    echo "[5/9] Instalando dependencias para importar documentos..."
+
+    echo -n "  Instalar librerias para importar PDF, DOCX, XLSX, XLS? (s/N): "
+    read -r respuesta
+    if [ "$respuesta" != "s" ] && [ "$respuesta" != "S" ]; then
+        echo "  Omitido. Los formatos faltantes se saltearan al importar."
+        return
+    fi
+
+    pip3 install pypdf --quiet 2>/dev/null || pip3 install pypdf --quiet --break-system-packages 2>/dev/null
+    echo "  - pypdf (PDF): $(python3 -c 'import pypdf; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install python-docx --quiet 2>/dev/null || pip3 install python-docx --quiet --break-system-packages 2>/dev/null
+    echo "  - python-docx (DOCX): $(python3 -c 'import docx; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install openpyxl --quiet 2>/dev/null || pip3 install openpyxl --quiet --break-system-packages 2>/dev/null
+    echo "  - openpyxl (XLSX): $(python3 -c 'import openpyxl; print("OK")' 2>/dev/null || echo 'fallo')"
+
+    pip3 install xlrd --quiet 2>/dev/null || pip3 install xlrd --quiet --break-system-packages 2>/dev/null
+    echo "  - xlrd (XLS antiguo): $(python3 -c 'import xlrd; print("OK")' 2>/dev/null || echo 'fallo')"
+}
+
+install_sentence_transformers() {
+    echo "[6/9] Instalando sentence-transformers para embeddings automaticos..."
+
+    echo -n "  Instalar sentence-transformers (recomendado, ~80MB)? (s/N): "
+    read -r respuesta
+    if [ "$respuesta" != "s" ] && [ "$respuesta" != "S" ]; then
+        echo "  Omitido. Los embeddings se guardaran como vectores cero."
+        return
+    fi
+
+    pip3 install sentence-transformers --quiet 2>/dev/null || pip3 install sentence-transformers --quiet --break-system-packages 2>/dev/null
+
+    CACHE_DIR="$HOME/.cache/huggingface/hub"
+    MODEL_DIR="models--sentence-transformers--all-MiniLM-L6-v2"
+    if [ -d "$CACHE_DIR/$MODEL_DIR" ]; then
+        echo "  - sentence-transformers (all-MiniLM-L6-v2, 384-dim): OK (en cache)"
+    else
+        echo "  - sentence-transformers: instalado, descarga pendiente al primer uso (~80MB)"
+    fi
+}
+
 configure_opencode() {
-    echo "[6/7] Configurando OpenCode..."
+    echo "[7/9] Configurando OpenCode..."
 
     if [ ! -f "$MCP_DIR/server.py" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
         return
     fi
+
+    local REAL_USER
+    REAL_USER=$(logname 2>/dev/null || echo "$USER")
 
     echo -n "  Configurar PardusDB MCP para OpenCode? (s/N): "
     read -r respuesta
@@ -223,6 +260,15 @@ configure_opencode() {
 
     local OPCODE_CONFIG_DIR="$HOME/.config/opencode"
     local OPCODE_CONFIG="$OPCODE_CONFIG_DIR/opencode.json"
+    local OPCODE_SKILLS_DIR="$HOME/.config/opencode/skills"
+    local SKILL_SOURCE="$SCRIPT_DIR/skill/skill.md"
+
+    if [ -f "$SKILL_SOURCE" ]; then
+        mkdir -p "$OPCODE_SKILLS_DIR"
+        cp "$SKILL_SOURCE" "$OPCODE_SKILLS_DIR/pardusdb.md"
+        echo "  Skill copiado: $OPCODE_SKILLS_DIR/pardusdb.md"
+    fi
+
     local MCP_PATH="$MCP_DIR/run_mcp.sh"
 
     if [ -f "$OPCODE_CONFIG" ]; then
@@ -272,8 +318,27 @@ JSONEOF
     echo "  Recuerda reiniciar OpenCode para que los cambios surtan efecto."
 }
 
+install_python_sdk() {
+    echo "[8/9] Instalando SDK Python..."
+
+    if [ ! -d "$SCRIPT_DIR/sdk/python" ]; then
+        echo "  ADVERTENCIA: Directorio sdk/python/ no encontrado, saltando SDK Python"
+        return
+    fi
+
+    cd "$SCRIPT_DIR/sdk/python"
+
+    pip install -e . --quiet 2>/dev/null
+
+    if command -v python3 &> /dev/null; then
+        python3 -c "import pardusdb" 2>/dev/null && echo "  SDK Python instalado correctamente" || echo "  ADVERTENCIA: SDK Python no disponible"
+    fi
+
+    cd "$SCRIPT_DIR"
+}
+
 create_data_dir() {
-    echo "[7/7] Creando directorio de datos..."
+    echo "[9/9] Creando directorio de datos..."
 
     mkdir -p "$DATA_DIR"
 
@@ -298,7 +363,7 @@ verify_installation() {
     echo "Archivos instalados:"
     echo "  - $INSTALL_DIR/pardusdb    (binario principal)"
     echo "  - $INSTALL_DIR/pardus      (helper, crea BD por defecto)"
-    echo "  - $MCP_DIR/              (servidor MCP con venv)"
+    echo "  - $MCP_DIR/              (servidor MCP)"
     echo "  - $CONFIG_DIR/config.toml (configuracion)"
     echo ""
     echo "Uso rapido:"
@@ -306,10 +371,15 @@ verify_installation() {
     echo "  pardusdb                  # Binario directo (in-memory)"
     echo "  pardusdb mi.db            # Abre archivo especifico"
     echo ""
-    echo "MCP Server:"
-    mcp_state=$("$MCP_DIR/venv/bin/python" -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "no instalado")
-    echo "  - mcp (Python package): $mcp_state"
-    echo "  - Wrapper: $MCP_DIR/run_mcp.sh"
+    echo "Dependencias Python para importacion de documentos:"
+    for pkg in pypdf docx openpyxl xlrd; do
+        state=$(python3 -c "import $pkg; print('OK')" 2>/dev/null || echo "no instalado")
+        echo "  - $pkg: $state"
+    done
+    echo ""
+    echo "Embeddings automaticos:"
+    st_state=$(python3 -c "from sentence_transformers import SentenceTransformer; print('OK')" 2>/dev/null || echo "no instalado")
+    echo "  - sentence-transformers: $st_state"
     echo ""
     echo "Para usar el MCP server con OpenCode, ver INSTALL.md"
     echo ""
@@ -317,12 +387,14 @@ verify_installation() {
 
 do_install() {
     check_prerequisites
-    build_binary
     install_binary
     create_helper
     create_config
     install_mcp
+    install_document_dependencies
+    install_sentence_transformers
     configure_opencode
+    install_python_sdk
     create_data_dir
     verify_installation
 }

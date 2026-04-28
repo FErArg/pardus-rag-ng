@@ -66,7 +66,7 @@ cd pardusdb
 
 ---
 
-### Option 3: install-macos.sh — macOS with virtual environment
+### Option 3: install-macos.sh — macOS with virtual environment (no Rust required)
 
 ```bash
 git clone https://github.com/pardus-ai/pardusdb
@@ -75,15 +75,14 @@ cd pardusdb
 ```
 
 **What it does:**
-1. Checks for Rust and Python 3 (required)
-2. Compiles `pardusdb` with `cargo build --release`
-3. Installs the binary, helper, MCP server, config
-4. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
-5. Installs the `mcp` package inside the venv (avoids macOS SIP / PEP 668 restrictions)
-6. Generates a wrapper script `~/.pardus/mcp/run_mcp.sh`
-7. Creates default database
+1. Copies the precompiled binary from `bin/pardus-v0.4.14` to `~/.local/bin/pardusdb`
+2. Installs the helper, MCP server, config
+3. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
+4. Installs the `mcp` package inside the venv (avoids macOS SIP / PEP 668 restrictions)
+5. Generates a wrapper script `~/.pardus/mcp/run_mcp.sh`
+6. Creates default database
 
-**Why a virtual environment?** macOS 26+ may block global pip installs due to System Integrity Protection. The venv isolates the MCP dependencies and works on all macOS versions without extra flags.
+**Why a virtual environment?** macOS 26+ may block global pip installs due to System Integrity Protection. The venv isolates the MCP dependencies and works on all macOS versions without extra flags. Uses the precompiled binary — no Rust compilation needed.
 
 **MCP in OpenCode:** The wrapper script is used as the command in `opencode.json`:
 ```json
@@ -98,7 +97,7 @@ cd pardusdb
 }
 ```
 
-**Use this when:** You are on macOS, want a clean setup without touching system Python packages.
+**Use this when:** You are on macOS, want a fast setup without Rust, and need a clean MCP installation isolated from system Python packages.
 
 ---
 
@@ -106,13 +105,13 @@ cd pardusdb
 
 | | setup.sh | install.sh | install-macos.sh |
 |---|---|---|---|
-| Requires Rust | Yes (auto-installed) | No | Yes |
-| Compiles source | Yes | No | Yes |
-| Takes binary from | `target/release/` | `bin/pardus-v*` | `target/release/` |
-| Writes binary to `bin/` | Yes | No | Yes |
+| Requires Rust | Yes (auto-installed) | No | **No** |
+| Compiles source | Yes | No | No |
+| Takes binary from | `target/release/` | `bin/pardus-v*` | `bin/pardus-v*` |
+| Writes binary to `bin/` | Yes | No | No |
 | MCP installation | global pip | global pip | **virtual environment** |
 | macOS compatibility | Partial | Partial | **Recommended** |
-| Speed | ~1-3 min | <1 second | ~1-3 min |
+| Speed | ~1-3 min | <1 second | <1 second |
 | MCP server, SDK, config | Same | Same | Same |
 
 ---

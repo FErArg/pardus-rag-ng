@@ -59,7 +59,7 @@ cd pardusdb
 
 Copies the precompiled binary from `bin/pardus-v0.4.14` to `~/.local/bin/pardusdb`. No Rust compilation — faster but requires a pre-existing binary in the repo.
 
-### Option 3: install-macos.sh — macOS with venv-based MCP
+### Option 3: install-macos.sh — macOS with venv-based MCP (no Rust required)
 
 ```bash
 git clone https://github.com/pardus-ai/pardusdb
@@ -67,16 +67,16 @@ cd pardusdb
 ./install-macos.sh --install
 ```
 
-Compiles from source (requires Rust) and installs the MCP server inside a Python virtual environment. Recommended for macOS 26+ where global pip may fail due to SIP or PEP 668 restrictions. Includes a wrapper script `~/.pardus/mcp/run_mcp.sh`.
+Uses the precompiled binary from `bin/pardus-v0.4.14` (no Rust compilation). Installs the MCP server inside a Python virtual environment (`~/.pardus/mcp/venv/`) with a wrapper script `~/.pardus/mcp/run_mcp.sh`. Recommended for macOS 26+ where global pip may fail due to SIP or PEP 668 restrictions.
 
 | | setup.sh | install.sh | install-macos.sh |
 |---|---|---|---|
-| Requires Rust | Yes (auto-installed) | No | Yes |
-| Compiles source | Yes | No | Yes |
-| Binary from | `target/release/` | `bin/pardus-v*` | `target/release/` |
+| Requires Rust | Yes (auto-installed) | No | **No** |
+| Compiles source | Yes | No | No |
+| Binary from | `target/release/` | `bin/pardus-v*` | `bin/pardus-v*` |
 | MCP installation | global pip | global pip | virtual environment |
 | macOS compatibility | Partial | Partial | **Recommended** |
-| Speed | ~1-3 min | <1 sec | ~1-3 min |
+| Speed | ~1-3 min | <1 sec | <1 sec |
 
 See [INSTALL.md](INSTALL.md) for detailed instructions.
 

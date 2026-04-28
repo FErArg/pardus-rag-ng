@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP package verification**: `install_mcp()` now verifies the `mcp` Python package was installed correctly, displaying OK/fallo status like other dependencies.
 - **Repository cleanup**: Added `.gitignore` (target/, *.pyc, __pycache__/, *.pardus). Removed orphaned files: nodesource_setup.sh, test_mcp_tools.py, unrelated docs (CELEX PDF, BOE summary), accidentally committed --version binary and __pycache__ bytecode.
 - **Docs**: Revised README.md and INSTALL.md with clearer setup.sh vs install.sh comparison tables.
-- **macOS installer**: Added `install-macos.sh` with venv-based MCP installation. Uses Python virtual environment at `~/.pardus/mcp/venv/` to avoid SIP / PEP 668 restrictions on macOS 26+. Generates wrapper script `run_mcp.sh` for OpenCode integration.
+- **macOS installer**: Replaced `install-macos.sh` with a venv-based MCP installation. Now uses the precompiled binary from `bin/pardus-v0.4.14` (no Rust compilation). Installs MCP inside `~/.pardus/mcp/venv/` with a wrapper script `run_mcp.sh` for OpenCode integration. Removed Rust as a prerequisite — only Python 3 and pip are required.
 
 ## [0.4.13] - 2026-04-28
 
