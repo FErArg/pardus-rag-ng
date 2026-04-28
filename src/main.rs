@@ -24,7 +24,6 @@ fn run_with_file(path: &str) {
     match Database::open(path) {
         Ok(mut db) => {
             println!("Database opened successfully.\n");
-            demo_operations(&mut db);
 
             if let Err(e) = db.save() {
                 println!("Error saving database: {}", e);

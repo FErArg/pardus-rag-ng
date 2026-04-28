@@ -5,6 +5,12 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.9] - 2026-04-28
+
+### Fixed
+
+- **Critical bug**: `demo_operations()` was called on every `pardusdb <path>` invocation, attempting to `CREATE TABLE documents` without `IF NOT EXISTS`, causing all database operations to crash if the table already existed. Removed the automatic demo table creation from `run_with_file()`.
+
 ## [0.4.8] - 2026-04-28
 
 ### Added
