@@ -5,6 +5,24 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.16] - 2026-05-01
+
+### Fixed
+
+- **Batch insert centroid bug** (`graph.rs:insert_batch`): The centroid calculation formula only worked for single inserts. Fixed to use proper batch formula: `centroid_new = (centroid * n_existing + sum_batch) / n_total`. This ensures accurate centroid tracking during bulk vector imports, which is critical for correct similarity search starting points.
+- **Delete unique index cleanup** (`table.rs:delete`): Fixed a bug where deleting rows did not remove values from the `unique_indexes` HashSet, causing subsequent INSERT operations with the same unique value to fail incorrectly.
+- **GraphConfig persistence** (`database.rs`, `concurrent.rs`): Fixed `GraphConfig` (graph parameters like `max_neighbors`, `ef_construction`, `ef_search`) not being persisted to disk. On file load, the graph config was always reset to defaults instead of restored from the saved file. This caused performance regression on database reload.
+- **REPL panic** (`main.rs:run_repl`): Fixed a panic that could occur when accessing the current file path if it was `None` in the REPL loop.
+
+### Changed
+
+- **GraphConfig serialization**: Added `Serialize`/`Deserialize` to `GraphConfig` and added a public `config()` getter method to `Graph` for serialization access.
+- **Code cleanup**: Removed numerous unused imports across `graph.rs`, `table.rs`, `prepared.rs`, and `concurrent.rs` to reduce compiler warnings.
+
+### Known Limitations
+
+- **Vector updates**: When updating a row's vector column via `UPDATE`, the graph neighbor edges are NOT updated to reflect the new vector position. For correct similarity search results after vector changes, delete and re-insert the row instead.
+
 ## [0.4.15] - 2026-04-28
 
 ### Changed

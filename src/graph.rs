@@ -1,10 +1,12 @@
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::BinaryHeap;
+
+use serde::{Deserialize, Serialize};
 
 use crate::distance::{Distance, Numeric};
 use crate::node::{Candidate, Node, NodeId};
 
 /// Configuration for the graph.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GraphConfig {
     /// Maximum number of neighbors per node
     pub max_neighbors: usize,
@@ -71,6 +73,11 @@ where
     /// Get the number of active nodes.
     pub fn len(&self) -> usize {
         self.active_count
+    }
+
+    /// Get a clone of the graph configuration.
+    pub fn config(&self) -> GraphConfig {
+        self.config.clone()
     }
 
     /// Check if the graph is empty.
@@ -356,28 +363,42 @@ where
         let n_existing = self.active_count - batch_size;
         let n_total = self.active_count;
 
-        // Insert all nodes first (without connecting edges)
-        for (i, vector) in vectors.into_iter().enumerate() {
-            let node_id = node_ids[i];
+        // Compute the sum of all vectors in the batch
+        let batch_sum: Vec<f32> = vectors.iter()
+            .fold(Vec::new(), |mut acc, v| {
+                if acc.is_empty() {
+                    acc = v.iter().map(|&x| x.to_f32()).collect();
+                } else {
+                    for (i, &val) in v.iter().enumerate() {
+                        acc[i] += val.to_f32();
+                    }
+                }
+                acc
+            });
 
-            // Update centroid incrementally
-            let n_before = n_existing + i;
-            let n_after = n_before + 1;
-            self.centroid
-                .iter_mut()
-                .zip(vector.iter())
-                .for_each(|(c, &v)| {
-                    *c = *c * (n_before as f32 / n_after as f32) + v.to_f32() / n_after as f32;
-                });
-
-            // Create node without neighbors
-            let node = Node::with_capacity(vector, max_neighbors);
-            self.nodes.push(node);
+        // If this is the first batch, set centroid directly from batch average
+        if n_existing == 0 {
+            let batch_size_f = batch_size as f32;
+            for (c, &bs) in self.centroid.iter_mut().zip(batch_sum.iter()) {
+                *c = bs / batch_size_f;
+            }
+            // Insert all nodes without connecting edges
+            for (i, vector) in vectors.into_iter().enumerate() {
+                let node = Node::with_capacity(vector, max_neighbors);
+                self.nodes.push(node);
+            }
+            return node_ids;
         }
 
-        // If this is the first batch, just return - no edges to connect
-        if n_existing == 0 {
-            return node_ids;
+        // Update centroid: centroid_new = (centroid * n_existing + sum_batch) / n_total
+        for (c, &bs) in self.centroid.iter_mut().zip(batch_sum.iter()) {
+            *c = (*c * n_existing as f32 + bs) / n_total as f32;
+        }
+
+        // Insert all nodes first (without connecting edges)
+        for vector in vectors.into_iter() {
+            let node = Node::with_capacity(vector, max_neighbors);
+            self.nodes.push(node);
         }
 
         // Now connect edges for all new nodes

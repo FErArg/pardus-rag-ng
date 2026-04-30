@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::distance::{Distance, Euclidean};
+use crate::distance::Euclidean;
 use crate::error::{MarsError, Result};
 use crate::graph::{Graph, GraphConfig};
 use crate::node::NodeId;
-use crate::parser::{BoolConnector, ComparisonOp, ConditionValue, OrderBy, SelectColumn, WhereClause};
-use crate::schema::{Column, ColumnType, Row, Schema, Value};
+use crate::parser::{BoolConnector, ComparisonOp, ConditionValue, OrderBy, WhereClause};
+use crate::schema::{Row, Schema, Value};
 
 /// A table in the database containing vectors and metadata
 pub struct Table {
@@ -211,6 +211,9 @@ impl Table {
     }
 
     /// Update rows matching conditions
+    /// NOTE: If the vector column is updated, the graph neighbor edges are NOT updated
+    /// to reflect the new vector position. This is a known limitation - vector updates
+    /// should be implemented by deleting and re-inserting the row for correct search results.
     pub fn update(
         &mut self,
         assignments: &[(String, Value)],
@@ -254,10 +257,38 @@ impl Table {
         let count = matching_ids.len();
 
         for id in &matching_ids {
+            // Collect value strings to remove from unique indexes (need to do this before mutable borrow)
+            let unique_values_to_remove: Vec<(String, String)> = if !self.unique_indexes.is_empty() {
+                if let Some(row) = self.rows.get(id) {
+                    row.values.iter().enumerate()
+                        .filter_map(|(col_idx, val)| {
+                            let col_name = self.schema.columns.get(col_idx)?.name.clone();
+                            if self.unique_indexes.contains_key(&col_name) {
+                                let value_str = Self::value_to_string(val);
+                                if value_str != "NULL" {
+                                    return Some((col_name, value_str));
+                                }
+                            }
+                            None
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                }
+            } else {
+                Vec::new()
+            };
+
             self.rows.remove(id);
-            // Note: We should also delete from graph, but need to map row ID to graph ID
             let graph_id = (*id - 1) as NodeId;
             self.graph.delete(graph_id);
+
+            // Clean up unique indexes after row removal (borrow is released)
+            for (col_name, value_str) in unique_values_to_remove {
+                if let Some(unique_set) = self.unique_indexes.get_mut(&col_name) {
+                    unique_set.remove(&value_str);
+                }
+            }
         }
 
         Ok(count)

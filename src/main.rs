@@ -104,8 +104,8 @@ fn run_repl() {
     let mut current_file: Option<PathBuf> = None;
 
     loop {
-        if current_file.is_some() {
-            print!("pardusdb [{}]> ", current_file.as_ref().unwrap().display());
+        if let Some(path) = &current_file {
+            print!("pardusdb [{}]> ", path.display());
         } else {
             print!("pardusdb [memory]> ");
         }

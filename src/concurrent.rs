@@ -56,11 +56,11 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use serde::{Deserialize, Serialize};
 
-use crate::database::{ExecuteResult, TableInfo};
+use crate::database::{ExecuteResult, TableInfo, TableData};
 use crate::error::{MarsError, Result};
 use crate::graph::GraphConfig;
 use crate::parser::{parse, Command, ComparisonOp};
-use crate::schema::{Column, ColumnType, Row, Schema, Value};
+use crate::schema::{Column, ColumnType, Schema, Value};
 use crate::table::Table;
 
 /// File header with database metadata
@@ -68,15 +68,6 @@ use crate::table::Table;
 struct DbHeader {
     pub version: u32,
     pub table_count: u32,
-}
-
-/// Serialized table data
-#[derive(Serialize, Deserialize)]
-struct TableData {
-    pub schema: Schema,
-    pub rows: Vec<Row>,
-    pub centroid: Vec<f32>,
-    pub next_id: u64,
 }
 
 /// Internal database state
@@ -173,7 +164,7 @@ impl ConcurrentDatabase {
             let table_data: TableData = bincode::deserialize(&table_buf)
                 .map_err(|e| MarsError::InvalidFormat(format!("Failed to deserialize table: {}", e)))?;
 
-            let mut table = Table::new(table_data.schema, GraphConfig::default())?;
+            let mut table = Table::new(table_data.schema, table_data.config)?;
 
             for row in table_data.rows {
                 if let Some(vec_idx) = table.schema.columns.iter().position(|c| {
@@ -235,6 +226,7 @@ impl ConcurrentDatabase {
                 rows: table.rows.values().cloned().collect(),
                 centroid: table.graph.centroid().to_vec(),
                 next_id: table.next_id,
+                config: table.graph.config().clone(),
             };
 
             let serialized = bincode::serialize(&table_data)

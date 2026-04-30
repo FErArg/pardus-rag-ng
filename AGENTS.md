@@ -16,7 +16,6 @@
 - GPU paths require `--features gpu`
 - Python SDK checks: `cd sdk/python && pip install -e ".[dev]" && pytest && ruff check && mypy pardusdb`
 - TypeScript SDK checks: `cd sdk/typescript/pardusdb && npm install && npm test && npm run build`
-- There is no repo-local CI workflow or task runner to tell you what to run; verify the package you touched directly.
 
 ## Behavior Gotchas
 
@@ -26,9 +25,9 @@
 - `mcp/src/server.py` defaults embedding-based text tools to dimension `384` and model `all-MiniLM-L6-v2`.
 - If `sentence-transformers` is unavailable, MCP text import/search code falls back to zero vectors instead of hard-failing.
 - `sdk/typescript/pardusdb/package.json` defines `npm run lint`, but does not declare `eslint` in `devDependencies`; do not assume lint works in a clean checkout.
+- `Cargo.toml` uses `edition = "2024"` which is non-standard (stable Rust uses 2021); avoid changing this unless you also update the toolchain.
 
 ## Release Notes
 
-- Version strings that affect shipped artifacts are duplicated in `Cargo.toml`, `mcp/src/server.py`, `sdk/python/pyproject.toml`, `sdk/typescript/pardusdb/package.json`, `setup.sh`, `install.sh`, and `install-macos.sh`.
-- `README.md` and `INSTALL.md` also hardcode the current version and versioned binary filenames; update them in the same release change.
-- Current repo mismatch: `sdk/python/pardusdb/__init__.py` still reports `__version__ = "0.1.0"` while the package metadata is `0.4.15`.
+- Version strings that affect shipped artifacts are duplicated in `Cargo.toml`, `mcp/src/server.py`, `sdk/python/pyproject.toml`, `sdk/typescript/pardusdb/package.json`, `setup.sh`, `install.sh`, and `install-macos.sh`. `README.md` and `INSTALL.md` also hardcode the current version and versioned binary filenames; update them all in the same release change.
+- `sdk/python/pardusdb/__init__.py` reports `__version__ = "0.1.0"` while `Cargo.toml` and package metadata report `0.4.15` — this mismatch must be fixed before publishing.

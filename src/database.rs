@@ -20,11 +20,12 @@ struct DbHeader {
 
 /// Serialized table data
 #[derive(Serialize, Deserialize)]
-struct TableData {
+pub struct TableData {
     pub schema: Schema,
     pub rows: Vec<Row>,
     pub centroid: Vec<f32>,
     pub next_id: u64,
+    pub config: GraphConfig,
 }
 
 /// The main database - manages multiple tables in a single file
@@ -103,8 +104,8 @@ impl Database {
             let table_data: TableData = bincode::deserialize(&table_buf)
                 .map_err(|e| MarsError::InvalidFormat(format!("Failed to deserialize table: {}", e)))?;
 
-            // Reconstruct table
-            let mut table = Table::new(table_data.schema, GraphConfig::default())?;
+            // Reconstruct table with saved config (not default)
+            let mut table = Table::new(table_data.schema, table_data.config)?;
 
             // Restore rows and graph
             for row in table_data.rows {
@@ -161,6 +162,7 @@ impl Database {
                 rows: table.rows.values().cloned().collect(),
                 centroid: table.graph.centroid().to_vec(),
                 next_id: table.next_id,
+                config: table.graph.config().clone(),
             };
 
             let serialized = bincode::serialize(&table_data)
