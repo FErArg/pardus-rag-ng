@@ -173,6 +173,39 @@ impl Value {
             _ => None,
         }
     }
+
+    /// Compute a stable hash for this value (used for DISTINCT and unique indexes).
+    pub fn stable_hash(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        match self {
+            Value::Null => {
+                0u64.hash(&mut hasher);
+            }
+            Value::Vector(v) => {
+                for (i, &f) in v.iter().enumerate() {
+                    // Mix index with value for stable hash
+                    (i, f.to_bits()).hash(&mut hasher);
+                }
+            }
+            Value::Text(s) => {
+                s.hash(&mut hasher);
+            }
+            Value::Integer(i) => {
+                i.hash(&mut hasher);
+            }
+            Value::Float(f) => {
+                f.to_bits().hash(&mut hasher);
+            }
+            Value::Boolean(b) => {
+                b.hash(&mut hasher);
+            }
+            Value::Blob(b) => {
+                b.hash(&mut hasher);
+            }
+        }
+        hasher.finish()
+    }
 }
 
 /// A row in a table
@@ -189,6 +222,16 @@ impl Row {
 
     pub fn get(&self, index: usize) -> Option<&Value> {
         self.values.get(index)
+    }
+
+    /// Compute a stable hash of all values in this row (used for DISTINCT).
+    pub fn values_hash(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        for val in &self.values {
+            hasher.write_u64(val.stable_hash());
+        }
+        hasher.finish()
     }
 }
 

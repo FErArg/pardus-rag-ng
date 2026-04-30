@@ -22,7 +22,7 @@ show_help() {
 PardusDB v${VERSION} - Instalador (binario precompilado)
 
 USO:
-    ./install.sh [OPCION]
+    ./install-macos.sh [OPCION]
 
 OPCIONES:
     --install     Instalar PardusDB (por defecto)

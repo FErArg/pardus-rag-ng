@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **GraphConfig serialization**: Added `Serialize`/`Deserialize` to `GraphConfig` and added a public `config()` getter method to `Graph` for serialization access.
 - **Code cleanup**: Removed numerous unused imports across `graph.rs`, `table.rs`, `prepared.rs`, and `concurrent.rs` to reduce compiler warnings.
+- **Performance optimizations**: Eliminated unnecessary clones in `graph.rs:insert()` by reordering search-before-ownership. Changed `batch_insert` to use references instead of cloning vectors. Changed `reverse_prune()` to use reference instead of allocating new vector. Added stable hash functions for `Value` and `Row` to avoid string formatting in DISTINCT operations.
+- **Shell script fixes**: Fixed duplicate step counter `[1/10]` in `setup.sh`. Fixed help text in `install-macos.sh` (was referencing `./install.sh`). Removed unused variable in batch insert loop.
 
 ### Known Limitations
 

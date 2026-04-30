@@ -141,7 +141,7 @@ build_binary() {
     echo "Binario construido correctamente."
 
     echo ""
-    echo "[1/10] Guardando binario en bin/pardus-v${VERSION}-${PLATFORM}-$(uname -m)..."
+    echo "[2/10] Guardando binario en bin/pardus-v${VERSION}-${PLATFORM}-$(uname -m)..."
     mkdir -p "$BIN_OUT_DIR"
     cp "target/release/$BINARY_NAME" "$BIN_OUT_DIR/pardus-v${VERSION}-${PLATFORM}-$(uname -m)"
     echo "  Binario guardado en: $BIN_OUT_DIR/pardus-v${VERSION}-${PLATFORM}-$(uname -m)"

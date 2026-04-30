@@ -178,8 +178,7 @@ impl Table {
             let mut seen = std::collections::HashSet::new();
             results = results.into_iter()
                 .filter(|row| {
-                    let key = format!("{:?}", row.values);
-                    seen.insert(key)
+                    seen.insert(row.values_hash())
                 })
                 .collect();
         }

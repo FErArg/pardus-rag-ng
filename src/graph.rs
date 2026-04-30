@@ -289,25 +289,21 @@ where
         // Allocate node ID
         let node_id = self.allocate_node_id();
 
-        // Create new node
-        let mut new_node = Node::with_capacity(vector.clone(), max_neighbors);
-
-        // Update centroid
-        self.update_centroid_insert(&vector);
-
-        // If this is the first node, just add it
+        // If this is the first node, just add it without searching
         if self.active_count == 1 {
+            self.update_centroid_insert(&vector);
+            let new_node = Node::with_capacity(vector, max_neighbors);
             self.insert_node_at(node_id, new_node);
             return node_id;
         }
 
-        // Search for candidates
+        // Search for candidates and prune to get neighbors BEFORE taking ownership
         let candidates = self.search(&vector, search_buffer);
-
-        // Prune candidates to get neighbors
         let neighbors = self.robust_prune(&vector, &candidates, alpha, max_neighbors);
 
-        // Set neighbors for new node
+        // Now update centroid and create node with neighbors pre-set
+        self.update_centroid_insert(&vector);
+        let mut new_node = Node::with_capacity(vector, max_neighbors);
         new_node.neighbors = neighbors.clone();
         self.insert_node_at(node_id, new_node);
 
@@ -383,7 +379,7 @@ where
                 *c = bs / batch_size_f;
             }
             // Insert all nodes without connecting edges
-            for (i, vector) in vectors.into_iter().enumerate() {
+            for vector in vectors.into_iter() {
                 let node = Node::with_capacity(vector, max_neighbors);
                 self.nodes.push(node);
             }
@@ -406,13 +402,13 @@ where
         let mut edge_updates: Vec<(NodeId, Vec<NodeId>)> = Vec::with_capacity(batch_size);
 
         for &node_id in &node_ids {
-            let vector = self.nodes[node_id as usize].vector.as_ref().clone();
+            let vector_ref: &[T] = self.nodes[node_id as usize].vector.as_ref();
 
             // Search for candidates among existing nodes
-            let candidates = self.search(&vector, search_buffer);
+            let candidates = self.search(vector_ref, search_buffer);
 
             // Prune candidates to get neighbors
-            let neighbors = self.robust_prune(&vector, &candidates, alpha, max_neighbors);
+            let neighbors = self.robust_prune(vector_ref, &candidates, alpha, max_neighbors);
             edge_updates.push((node_id, neighbors));
         }
 
@@ -471,27 +467,25 @@ where
             return;
         }
 
-        // Compute distances to all neighbors
-        let candidates: Vec<Candidate> = {
-            let node = match self.get(node_id) {
-                Some(n) => n,
-                None => return,
-            };
-
-            neighbor_ids
-                .iter()
-                .filter_map(|&nid| {
-                    self.get(nid).map(|n| {
-                        let dist = Self::distance(&node.vector, &n.vector);
-                        Candidate::new(nid, dist)
-                    })
-                })
-                .collect()
+        // Get node vector for distance calculation
+        let node_vector: &[T] = match self.get(node_id) {
+            Some(n) => n.vector.as_ref(),
+            None => return,
         };
 
+        // Compute distances to all neighbors
+        let candidates: Vec<Candidate> = neighbor_ids
+            .iter()
+            .filter_map(|&nid| {
+                self.get(nid).map(|n| {
+                    let dist = Self::distance(node_vector, n.vector.as_ref());
+                    Candidate::new(nid, dist)
+                })
+            })
+            .collect();
+
         // Re-prune using the node's vector
-        let node_vector: Vec<T> = self.get(node_id).unwrap().vector.as_ref().clone();
-        let new_neighbors = self.robust_prune(&node_vector, &candidates, alpha, max_neighbors);
+        let new_neighbors = self.robust_prune(node_vector, &candidates, alpha, max_neighbors);
 
         // Update neighbor list
         if let Some(node) = self.get_mut(node_id) {
