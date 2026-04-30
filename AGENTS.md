@@ -30,4 +30,4 @@
 ## Release Notes
 
 - Version strings that affect shipped artifacts are duplicated in `Cargo.toml`, `mcp/src/server.py`, `sdk/python/pyproject.toml`, `sdk/typescript/pardusdb/package.json`, `setup.sh`, `install.sh`, and `install-macos.sh`. `README.md` and `INSTALL.md` also hardcode the current version and versioned binary filenames; update them all in the same release change.
-- `sdk/python/pardusdb/__init__.py` reports `__version__ = "0.1.0"` while `Cargo.toml` and package metadata report `0.4.15` — this mismatch must be fixed before publishing.
+- `sdk/python/pardusdb/__init__.py` still reports `__version__ = "0.1.0"` while `Cargo.toml` and package metadata report `0.4.16` — this mismatch must be fixed before publishing.
