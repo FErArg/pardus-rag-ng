@@ -257,6 +257,17 @@ Add to your `opencode.json`:
 
 Adjust the path to match your installation. Tools are automatically available to the LLM.
 
+### Documentation for AI Agents
+
+The file `pardusdb-agents.md` contains a complete guide for AI agents (OpenCode, Claude Desktop, etc.) on how to use all 15 PardusDB MCP tools.
+
+**For new projects using the MCP:**
+
+1. Copy `pardusdb-agents.md` to the project root
+2. Or integrate its content into the project's `AGENTS.md` file
+
+This ensures AI agents have all the information needed to interact with the vector database effectively.
+
 ## SDKs
 
 ### Python SDK
