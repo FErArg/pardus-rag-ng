@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.16"
+VERSION="0.4.17"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 OS=$(uname -s)
@@ -200,26 +200,27 @@ install_mcp() {
 }
 
 install_document_dependencies() {
-    echo "[5/9] Instalando dependencias para importar documentos..."
+    echo "[5/9] Instalando MarkItDown para importacion de documentos..."
 
-    echo -n "  Instalar librerias para importar PDF, DOCX, XLSX, XLS? (s/N): "
-    read -r respuesta
-    if [ "$respuesta" != "s" ] && [ "$respuesta" != "S" ]; then
-        echo "  Omitido. Los formatos faltantes se saltearan al importar."
-        return
+    local pip_extra=""
+    if [ "$(uname -s)" = "Linux" ]; then
+        pip_extra="--break-system-packages"
     fi
 
-    pip3 install pypdf --quiet 2>/dev/null || pip3 install pypdf --quiet --break-system-packages 2>/dev/null
-    echo "  - pypdf (PDF): $(python3 -c 'import pypdf; print("OK")' 2>/dev/null || echo 'fallo')"
+    if command -v pip3 &> /dev/null; then
+        PIP_CMD="pip3"
+    elif command -v pip &> /dev/null; then
+        PIP_CMD="pip"
+    else
+        PIP_CMD="python3 -m pip"
+    fi
 
-    pip3 install python-docx --quiet 2>/dev/null || pip3 install python-docx --quiet --break-system-packages 2>/dev/null
-    echo "  - python-docx (DOCX): $(python3 -c 'import docx; print("OK")' 2>/dev/null || echo 'fallo')"
+    $PIP_CMD install 'markitdown[all]' --quiet $pip_extra 2>/dev/null || \
+    $PIP_CMD install markitdown --quiet $pip_extra 2>/dev/null || \
+    echo "  ADVERTENCIA: No se pudo instalar markitdown"
 
-    pip3 install openpyxl --quiet 2>/dev/null || pip3 install openpyxl --quiet --break-system-packages 2>/dev/null
-    echo "  - openpyxl (XLSX): $(python3 -c 'import openpyxl; print("OK")' 2>/dev/null || echo 'fallo')"
-
-    pip3 install xlrd --quiet 2>/dev/null || pip3 install xlrd --quiet --break-system-packages 2>/dev/null
-    echo "  - xlrd (XLS antiguo): $(python3 -c 'import xlrd; print("OK")' 2>/dev/null || echo 'fallo')"
+    md_state=$(python3 -c "from markitdown import MarkItDown; print('OK')" 2>/dev/null || echo "fallo")
+    echo "  - markitdown: $md_state"
 }
 
 install_sentence_transformers() {
@@ -375,10 +376,8 @@ verify_installation() {
     echo "  pardusdb mi.db            # Abre archivo especifico"
     echo ""
     echo "Dependencias Python para importacion de documentos:"
-    for pkg in pypdf docx openpyxl xlrd; do
-        state=$(python3 -c "import $pkg; print('OK')" 2>/dev/null || echo "no instalado")
-        echo "  - $pkg: $state"
-    done
+    md_state=$(python3 -c "from markitdown import MarkItDown; print('OK')" 2>/dev/null || echo "no instalado")
+    echo "  - markitdown: $md_state"
     echo ""
     echo "Embeddings automaticos:"
     st_state=$(python3 -c "from sentence_transformers import SentenceTransformer; print('OK')" 2>/dev/null || echo "no instalado")

@@ -5,6 +5,18 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.17] - 2026-05-02
+
+### Changed
+
+- **MarkItDown integration**: Replaced all custom file parsers (pypdf, python-docx, openpyxl, xlrd) with Microsoft MarkItDown library for document conversion. The MCP server now uses MarkItDown's `convert()` API to convert PDF, DOCX, PPTX, XLSX, HTML, EPUB and other formats to Markdown before chunking. This provides better text extraction quality and supports more file formats.
+- **Extended file format support**: Added support for `.pptx`, `.ppt`, `.doc`, `.html`, `.htm`, `.epub` via MarkItDown.
+- **Simplified installation**: Removed interactive prompts from `install_document_dependencies()`. MarkItDown and its dependencies are now installed automatically without user interaction.
+
+### Removed
+
+- **Individual document library dependencies**: pypdf, python-docx, openpyxl, and xlrd are no longer installed separately as MarkItDown handles these formats internally.
+
 ## [0.4.16] - 2026-05-01
 
 ### Fixed

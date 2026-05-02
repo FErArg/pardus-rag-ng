@@ -8,12 +8,9 @@ import documents, and perform health checks.
 """
 
 import asyncio
-import csv
 import hashlib
-import json
 import os
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -59,29 +56,13 @@ def get_embedder():
             print(f"[embedder] failed to load model: {e}", file=sys.stderr)
     return _embedder_instance
 
-try:
-    import pypdf
-    PDF_AVAILABLE = True
-except ImportError:
-    PDF_AVAILABLE = False
 
+HAS_MARKITDOWN = False
 try:
-    import docx
-    DOCX_AVAILABLE = True
+    from markitdown import MarkItDown
+    HAS_MARKITDOWN = True
 except ImportError:
-    DOCX_AVAILABLE = False
-
-try:
-    import openpyxl
-    XLSX_AVAILABLE = True
-except ImportError:
-    XLSX_AVAILABLE = False
-
-try:
-    import xlrd
-    XLS_AVAILABLE = True
-except ImportError:
-    XLS_AVAILABLE = False
+    pass
 
 
 # ==================== Types ====================
@@ -250,205 +231,76 @@ def parse_id_from_result(result: str) -> Optional[int]:
     return None
 
 
-# ==================== File Parsers ====================
+# ==================== File Conversion (MarkItDown) ====================
 
-def parse_txt(path: str) -> dict[str, Any]:
-    content = Path(path).read_text(encoding="utf-8", errors="replace")
-    return {
-        "title": Path(path).stem,
-        "content": content,
-        "pages": [{"content": content, "page": 0}],
-    }
+SUPPORTED_EXTENSIONS = [
+    ".txt", ".md", ".csv", ".pdf",
+    ".docx", ".doc", ".pptx", ".ppt",
+    ".xlsx", ".xls", ".json", ".jsonl",
+    ".html", ".htm", ".epub",
+]
 
 
-def parse_md(path: str) -> dict[str, Any]:
-    content = Path(path).read_text(encoding="utf-8", errors="replace")
+def convert_to_markdown(path: str) -> tuple[str, str, list[dict[str, Any]]]:
+    """
+    Converts a file to markdown using MarkItDown and splits into sections/chunks.
+    Returns: (full_markdown, title, chunks)
+    where chunks = [{'content': str, 'page': int}, ...]
+    """
+    if not HAS_MARKITDOWN:
+        raise ImportError(
+            "markitdown not installed. Install with: pip install markitdown[all]"
+        )
+
+    md = MarkItDown()
+    result = md.convert(path)
+    markdown = result.text_content or ""
+
     title = Path(path).stem
-    return {
-        "title": title,
-        "content": content,
-        "pages": [{"content": content, "page": 0}],
-    }
 
-
-def parse_csv(path: str) -> dict[str, Any]:
-    rows = []
-    try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            reader = csv.DictReader(f)
-            for i, row in enumerate(reader):
-                rows.append({"content": json.dumps(row), "page": i + 1})
-    except Exception:
-        content = Path(path).read_text(encoding="utf-8", errors="replace")
-        return {
-            "title": Path(path).stem,
-            "content": content,
-            "pages": [{"content": content, "page": 0}],
-        }
-    full_content = Path(path).read_text(encoding="utf-8", errors="replace")
-    return {
-        "title": Path(path).stem,
-        "content": full_content,
-        "pages": rows if rows else [{"content": full_content, "page": 0}],
-    }
-
-
-def parse_pdf(path: str) -> dict[str, Any]:
-    if not PDF_AVAILABLE:
-        raise ImportError("pypdf not installed. Install with: pip install pypdf")
-    reader = pypdf.PdfReader(path)
-    title = Path(path).stem
-    try:
-        if reader.metadata and reader.metadata.get("/Title"):
-            title = reader.metadata.get("/Title", title)
-    except Exception:
-        pass
-    pages = []
-    for i, page in enumerate(reader.pages):
-        try:
-            text = page.extract_text()
-        except Exception:
-            text = ""
-        if text.strip():
-            pages.append({"content": text, "page": i + 1})
-    full_content = "\n\n".join(p["content"] for p in pages)
-    return {
-        "title": title,
-        "content": full_content,
-        "pages": pages,
-    }
-
-
-def parse_docx(path: str) -> dict[str, Any]:
-    if not DOCX_AVAILABLE:
-        raise ImportError("python-docx not installed. Install with: pip install python-docx")
-    doc = docx.Document(path)
-    title = Path(path).stem
-    try:
-        if doc.core_properties.title:
-            title = doc.core_properties.title
-    except Exception:
-        pass
-    paragraphs = []
-    for i, para in enumerate(doc.paragraphs):
-        text = para.text.strip()
-        if text:
-            paragraphs.append({"content": text, "page": i + 1})
-    full_content = "\n\n".join(p["content"] for p in paragraphs)
-    return {
-        "title": title,
-        "content": full_content,
-        "pages": paragraphs if paragraphs else [{"content": full_content, "page": 0}],
-    }
-
-
-def parse_xlsx(path: str) -> dict[str, Any]:
-    if not XLSX_AVAILABLE:
-        raise ImportError("openpyxl not installed. Install with: pip install openpyxl")
-    wb = openpyxl.load_workbook(path, data_only=True)
-    title = Path(path).stem
-    if wb.sheetnames:
-        title = wb.sheetnames[0]
-    rows = []
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        for i, row in enumerate(ws.iter_rows(values_only=True), start=1):
-            row_data = {str(cell.column_letter): str(cell.value) if cell.value is not None else "" for cell in row}
-            if any(v for v in row_data.values()):
-                rows.append({"content": json.dumps(row_data), "page": i})
-    full_content = "\n".join(r["content"] for r in rows)
-    return {
-        "title": title,
-        "content": full_content,
-        "pages": rows if rows else [{"content": "", "page": 0}],
-    }
-
-
-def parse_json(path: str) -> dict[str, Any]:
-    content = Path(path).read_text(encoding="utf-8", errors="replace")
-    try:
-        data = json.loads(content)
-    except Exception:
-        return {
-            "title": Path(path).stem,
-            "content": content,
-            "pages": [{"content": content, "page": 0}],
-        }
-    pages = []
-    if isinstance(data, list):
-        for i, item in enumerate(data):
-            if isinstance(item, dict):
-                text = item.get("text", json.dumps(item))
-                pages.append({"content": text, "page": i + 1})
-            else:
-                pages.append({"content": str(item), "page": i + 1})
-    elif isinstance(data, dict):
-        text = data.get("text", data.get("content", json.dumps(data)))
-        pages.append({"content": text, "page": 0})
-    full_content = "\n".join(p["content"] for p in pages)
-    return {
-        "title": Path(path).stem,
-        "content": full_content,
-        "pages": pages if pages else [{"content": content, "page": 0}],
-    }
-
-
-def parse_jsonl(path: str) -> dict[str, Any]:
-    lines = Path(path).read_text(encoding="utf-8", errors="replace").strip().split("\n")
-    pages = []
-    for i, line in enumerate(lines, start=1):
-        try:
-            item = json.loads(line)
-        except Exception:
-            item = {"text": line}
-        if isinstance(item, dict):
-            text = item.get("text", item.get("content", json.dumps(item)))
+    if markdown.startswith("# "):
+        first_newline = markdown.find("\n")
+        if first_newline > 0:
+            title = markdown[2:first_newline].strip()
         else:
-            text = str(item)
-        pages.append({"content": text, "page": i})
-    full_content = "\n".join(p["content"] for p in pages)
-    return {
-        "title": Path(path).stem,
-        "content": full_content,
-        "pages": pages,
-    }
+            title = markdown[2:].strip()
+
+    sections = split_markdown_by_headers(markdown)
+
+    chunks = []
+    for idx, section in enumerate(sections):
+        clean_content = section.strip()
+        if clean_content:
+            chunks.append({"content": clean_content, "page": idx})
+
+    if not chunks:
+        chunks = [{"content": markdown.strip() or "", "page": 0}]
+
+    return markdown, title, chunks
 
 
-def parse_xls(path: str) -> dict[str, Any]:
-    if not XLS_AVAILABLE:
-        raise ImportError("xlrd not installed. Install with: pip install xlrd")
-    wb = xlrd.open_workbook(path)
-    title = Path(path).stem
-    sheet = wb.sheet_by_index(0)
-    rows = []
-    for i in range(sheet.nrows):
-        row_data = {}
-        for j in range(sheet.ncols):
-            cell = sheet.cell(i, j)
-            row_data[str(j)] = str(cell.value) if cell.value else ""
-        if any(v for v in row_data.values()):
-            rows.append({"content": json.dumps(row_data), "page": i + 1})
-    full_content = "\n".join(r["content"] for r in rows)
-    return {
-        "title": title,
-        "content": full_content,
-        "pages": rows if rows else [{"content": "", "page": 0}],
-    }
+def split_markdown_by_headers(markdown: str) -> list[str]:
+    """
+    Splits markdown content into sections based on headers (# to ######).
+    Preserves header as part of the section content.
+    """
+    lines = markdown.split("\n")
+    sections = []
+    current = []
 
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            if current:
+                sections.append("\n".join(current))
+            current = [line]
+        else:
+            current.append(line)
 
-PARSERS = {
-    ".txt": parse_txt,
-    ".md": parse_md,
-    ".csv": parse_csv,
-    ".pdf": parse_pdf,
-    ".docx": parse_docx,
-    ".xlsx": parse_xlsx,
-    ".xls": parse_xls,
-    ".json": parse_json,
-    ".jsonl": parse_jsonl,
-}
+    if current:
+        sections.append("\n".join(current))
 
-SUPPORTED_EXTENSIONS = list(PARSERS.keys())
+    return sections if sections else [markdown]
 
 
 # ==================== Tool Handlers ====================
@@ -731,9 +583,7 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
             continue
 
         ext = file_path.suffix.lower()
-        parser = PARSERS.get(ext)
-
-        if not parser:
+        if ext not in SUPPORTED_EXTENSIONS:
             stats["skipped"] += 1
             continue
 
@@ -743,7 +593,7 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
             fhash = "unknown"
 
         try:
-            parsed = parser(fpath)
+            markdown_content, title, chunks = convert_to_markdown(fpath)
         except ImportError as e:
             stats["errors"] += 1
             error_details.append(f"{file_path.name}: {str(e)}")
@@ -753,9 +603,8 @@ async def handle_import_text(args: dict[str, Any]) -> dict[str, Any]:
             error_details.append(f"{file_path.name}: {str(e)}")
             continue
 
-        title = parsed.get("title", file_path.stem)
-        content = parsed.get("content", "")
-        pages = parsed.get("pages", [])
+        content = markdown_content
+        pages = chunks
         total_chunks = len(pages) if pages else 1
 
         try:
@@ -1244,7 +1093,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.16")
+server = Server("pardusdb-mcp", "0.4.17")
 
 
 @server.list_tools()
