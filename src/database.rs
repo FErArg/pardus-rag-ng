@@ -107,16 +107,27 @@ impl Database {
             // Reconstruct table with saved config (not default)
             let mut table = Table::new(table_data.schema, table_data.config)?;
 
-            // Restore rows and graph
+            // Find vector column index once
+            let vec_idx = table.schema.columns.iter().position(|c| {
+                matches!(c.data_type, ColumnType::Vector(_))
+            });
+
+            // Batch load: collect all vectors first, then insert in bulk
+            if let Some(vidx) = vec_idx {
+                let vectors: Vec<Vec<f32>> = table_data.rows.iter()
+                    .filter_map(|row| {
+                        row.values.get(vidx)
+                            .and_then(|v| v.as_vector())
+                            .map(|vv| vv.to_vec())
+                    })
+                    .collect();
+
+                // Bulk insert into graph (much faster than individual inserts)
+                table.graph.insert_batch(vectors);
+            }
+
+            // Restore rows (already deserialized)
             for row in table_data.rows {
-                // Extract vector and insert into graph
-                if let Some(vec_idx) = table.schema.columns.iter().position(|c| {
-                    matches!(c.data_type, ColumnType::Vector(_))
-                }) {
-                    if let Some(vec) = row.values.get(vec_idx).and_then(|v| v.as_vector()) {
-                        table.graph.insert(vec.to_vec());
-                    }
-                }
                 let id = row.id;
                 table.rows.insert(id, row);
             }

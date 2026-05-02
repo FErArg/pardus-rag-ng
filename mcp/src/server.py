@@ -80,7 +80,7 @@ class PardusDBClient:
                 ["pardusdb", *db_arg],
                 input=f"{command}\nquit\n".encode(),
                 capture_output=True,
-                timeout=30,
+                timeout=60,
             )
             output = (proc.stdout + proc.stderr).decode()
             if proc.returncode != 0:
