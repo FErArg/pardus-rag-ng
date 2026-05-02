@@ -31,8 +31,8 @@ While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no
 - **Full transactions** — BEGIN/COMMIT/ROLLBACK for atomic operations
 - **Optional GPU acceleration** — For large batch inserts and queries
 - **Python MCP server**
-- **Import documents from disk** — PDF, CSV, DOCX, XLSX, XLS, JSON, JSONL, MD, TXT with auto-embeddings and parent-child tracking
-- **Optional dependency installers** — Install document parsing libraries (pypdf, python-docx, openpyxl, xlrd) and sentence-transformers for auto-embeddings via setup.sh/install.sh
+- **Import documents from disk** — PDF, DOCX, PPTX, XLSX, HTML, EPUB, CSV, JSON, JSONL, MD, TXT with automatic text extraction and vector embeddings
+- **MarkItDown integration** — Uses Microsoft MarkItDown library for universal document-to-Markdown conversion
 - **Database health checks** — Verify integrity, detect orphans, check dimensions
 
 ## Installation
