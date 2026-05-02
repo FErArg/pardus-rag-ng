@@ -5,6 +5,16 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.18] - 2026-05-02
+
+### Fixed
+
+- **REPL stdin EOF auto-save** (`src/main.rs:run_with_file`): Fixed an issue where the REPL would hang indefinitely when stdin pipe did not properly signal EOF after `quit`. The REPL now auto-saves and exits cleanly when the input stream ends without an explicit `quit` command.
+
+### Changed
+
+- **MCP robustness**: Improved the REPL's behavior when used with subprocess pipes (MCP server). Auto-save ensures data is not lost even if the calling process terminates abnormally.
+
 ## [0.4.17] - 2026-05-02
 
 ### Changed

@@ -36,6 +36,7 @@ fn run_with_file(path: &str) {
                 return;
             }
 
+            let mut saw_quit = false;
             for line in lines {
                 let input = line.trim();
                 if input.is_empty() {
@@ -50,6 +51,7 @@ fn run_with_file(path: &str) {
 
                 match cmd {
                     "quit" | "exit" | "q" => {
+                        saw_quit = true;
                         if let Err(e) = db.save() {
                             println!("Error saving: {}", e);
                         } else {
@@ -90,6 +92,12 @@ fn run_with_file(path: &str) {
                             }
                         }
                     }
+                }
+            }
+
+            if !saw_quit {
+                if let Err(e) = db.save() {
+                    eprintln!("Auto-save on exit: {}", e);
                 }
             }
         }
