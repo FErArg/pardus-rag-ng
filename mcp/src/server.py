@@ -22,6 +22,19 @@ import re
 from typing import Any, List, Optional
 
 try:
+    from .model_context import (
+        get_context_window_for_model,
+        detect_provider,
+        DEFAULT_TOKENS_PER_CHUNK as MCP_TOKENS_PER_CHUNK,
+    )
+except ImportError:
+    from model_context import (
+        get_context_window_for_model,
+        detect_provider,
+        DEFAULT_TOKENS_PER_CHUNK as MCP_TOKENS_PER_CHUNK,
+    )
+
+try:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.types import Tool, TextContent
@@ -40,6 +53,10 @@ MAX_FILE_SIZE_MB = 50
 DEFAULT_VECTOR_DIM = 384
 EMBEDDER_MODEL = "all-MiniLM-L6-v2"
 TMP_DIR = Path("./tmp")
+STATS_FILE = Path.home() / ".pardus" / "mcp_stats.json"
+DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
+DEFAULT_CONTEXT_WINDOW = 1000000
+DEFAULT_TOKENS_PER_CHUNK = 300
 
 
 def _ensure_tmp_dir() -> Path:
@@ -71,6 +88,136 @@ def _convert_to_markdown(file_path: str, output_dir: Path) -> tuple[Path, str]:
 def _cleanup_tmp_dir(tmp_uuid_dir: Path):
     if tmp_uuid_dir.exists():
         shutil.rmtree(tmp_uuid_dir, ignore_errors=True)
+
+
+# ==================== Token Tracking ====================
+
+def _load_stats() -> dict:
+    """Load stats from JSON file."""
+    if STATS_FILE.exists():
+        try:
+            with open(STATS_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "config": {
+            "model": DEFAULT_MODEL,
+            "context_window": DEFAULT_CONTEXT_WINDOW,
+            "provider": "anthropic"
+        },
+        "session": {
+            "start": datetime.now(timezone.utc).isoformat(),
+            "queries": 0,
+            "tokens_sent": 0,
+            "tokens_if_full": 0,
+            "chunks_returned": 0
+        },
+        "total": {
+            "queries": 0,
+            "tokens_sent": 0,
+            "tokens_if_full": 0,
+            "chunks_returned": 0
+        }
+    }
+
+
+def _save_stats(stats: dict) -> None:
+    """Save stats to JSON file."""
+    STATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(STATS_FILE, "w") as f:
+            json.dump(stats, f, indent=2)
+    except Exception:
+        pass
+
+
+def update_token_stats(chunks_returned: int, tokens_sent: int) -> dict:
+    """Update token stats after a search query."""
+    stats = _load_stats()
+
+    # Calculate what would have been sent without MCP
+    tokens_if_full = tokens_sent * 20  # Rough estimate: full docs would be ~20x larger
+
+    # Update session
+    stats["session"]["queries"] += 1
+    stats["session"]["tokens_sent"] += tokens_sent
+    stats["session"]["tokens_if_full"] += tokens_if_full
+    stats["session"]["chunks_returned"] += chunks_returned
+
+    # Update total
+    stats["total"]["queries"] += 1
+    stats["total"]["tokens_sent"] += tokens_sent
+    stats["total"]["tokens_if_full"] += tokens_if_full
+    stats["total"]["chunks_returned"] += chunks_returned
+
+    _save_stats(stats)
+    return stats
+
+
+def get_token_stats() -> dict:
+    """Get current token stats with calculated savings."""
+    stats = _load_stats()
+
+    tokens_sent = stats["session"]["tokens_sent"]
+    tokens_if_full = stats["session"]["tokens_if_full"]
+    savings = tokens_if_full - tokens_sent if tokens_if_full > 0 else 0
+    savings_pct = (savings / tokens_if_full * 100) if tokens_if_full > 0 else 0
+
+    total_tokens_sent = stats["total"]["tokens_sent"]
+    total_tokens_if_full = stats["total"]["tokens_if_full"]
+    total_savings = total_tokens_if_full - total_tokens_sent if total_tokens_if_full > 0 else 0
+    total_savings_pct = (total_savings / total_tokens_if_full * 100) if total_tokens_if_full > 0 else 0
+
+    return {
+        "config": stats["config"],
+        "session": {
+            "start": stats["session"]["start"],
+            "queries": stats["session"]["queries"],
+            "tokens_sent": tokens_sent,
+            "tokens_if_full": tokens_if_full,
+            "savings": savings,
+            "savings_percent": round(savings_pct, 1),
+            "chunks_returned": stats["session"]["chunks_returned"]
+        },
+        "total": {
+            "queries": stats["total"]["queries"],
+            "tokens_sent": total_tokens_sent,
+            "tokens_if_full": total_tokens_if_full,
+            "savings": total_savings,
+            "savings_percent": round(total_savings_pct, 1),
+            "chunks_returned": stats["total"]["chunks_returned"]
+        }
+    }
+
+
+def set_current_model(model: str) -> dict:
+    """Set the current model and update config."""
+    stats = _load_stats()
+    context_window = get_context_window_for_model(model)
+    provider = detect_provider(model)
+
+    stats["config"] = {
+        "model": model,
+        "context_window": context_window,
+        "provider": provider
+    }
+    _save_stats(stats)
+    return {"model": model, "context_window": context_window, "provider": provider}
+
+
+def reset_session_stats() -> dict:
+    """Reset session stats (keep total)."""
+    stats = _load_stats()
+    stats["session"] = {
+        "start": datetime.now(timezone.utc).isoformat(),
+        "queries": 0,
+        "tokens_sent": 0,
+        "tokens_if_full": 0,
+        "chunks_returned": 0
+    }
+    _save_stats(stats)
+    return {"status": "Session stats reset"}
 
 
 # ==================== Optional Dependencies ====================
@@ -720,7 +867,20 @@ async def handle_search_text(args: dict[str, Any]) -> dict[str, Any]:
         vector_str = f"[{', '.join(str(x) for x in query_vector)}]"
         sql = f"SELECT * FROM {safe_table} WHERE embedding SIMILARITY {vector_str} LIMIT {k}"
         result = db_client.execute(sql)
-        return {"content": [{"type": "text", "text": f"Search Results for '{query}':\n\n{result}"}]}
+
+        # Estimate tokens
+        tokens_sent = k * MCP_TOKENS_PER_CHUNK
+        stats = update_token_stats(chunks_returned=k, tokens_sent=tokens_sent)
+
+        return {
+            "content": [{"type": "text", "text": f"Search Results for '{query}':\n\n{result}"}],
+            "stats": {
+                "chunks_returned": k,
+                "tokens_sent": tokens_sent,
+                "session_tokens_total": stats["session"]["tokens_sent"],
+                "session_savings_percent": stats["session"]["savings_percent"],
+            }
+        }
     except ValueError as e:
         return {"content": [{"type": "text", "text": f"Invalid input: {e}"}], "isError": True}
     except Exception as e:
@@ -1639,6 +1799,61 @@ async def handle_import_status(args: dict[str, Any]) -> dict[str, Any]:
         return {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
 
 
+async def handle_get_stats(args: dict[str, Any]) -> dict[str, Any]:
+    """Get token savings statistics."""
+    try:
+        stats = get_token_stats()
+        config = stats["config"]
+        session = stats["session"]
+        total = stats["total"]
+
+        response_text = f"""Token Savings Dashboard
+═══════════════════════════════════════════════════════
+
+CURRENT MODEL: {config['model']}
+Provider: {config['provider']}
+Context Window: {config['context_window']:,} tokens
+
+─────────────── SESSION ───────────────
+Queries: {session['queries']}
+Tokens sent: {session['tokens_sent']:,}
+Tokens if full doc: {session['tokens_if_full']:,}
+Savings: {session['savings']:,} tokens ({session['savings_percent']}%)
+Chunks returned: {session['chunks_returned']}
+
+─────────────── TOTAL ───────────────
+Total Queries: {total['queries']}
+Total Tokens sent: {total['tokens_sent']:,}
+Total Tokens if full: {total['tokens_if_full']:,}
+Total Savings: {total['savings']:,} tokens ({total['savings_percent']}%)
+Total Chunks: {total['chunks_returned']}
+"""
+        return {"content": [{"type": "text", "text": response_text}]}
+    except Exception as e:
+        return {"content": [{"type": "text", "text": f"Error getting stats: {e}"}], "isError": True}
+
+
+async def handle_set_model(args: dict[str, Any]) -> dict[str, Any]:
+    """Set the current LLM model for accurate token tracking."""
+    model = args.get("model")
+    if not model:
+        return {"content": [{"type": "text", "text": "Error: model name is required"}], "isError": True}
+    try:
+        result = set_current_model(model)
+        return {"content": [{"type": "text", "text": f"Model updated: {result['model']}\nContext window: {result['context_window']:,} tokens\nProvider: {result['provider']}"}]}
+    except Exception as e:
+        return {"content": [{"type": "text", "text": f"Error setting model: {e}"}], "isError": True}
+
+
+async def handle_reset_stats(args: dict[str, Any]) -> dict[str, Any]:
+    """Reset session statistics."""
+    try:
+        result = reset_session_stats()
+        return {"content": [{"type": "text", "text": f"Session stats reset successfully"}]}
+    except Exception as e:
+        return {"content": [{"type": "text", "text": f"Error resetting stats: {e}"}], "isError": True}
+
+
 # ==================== Tool Definitions ====================
 
 TOOLS = [
@@ -1886,6 +2101,33 @@ TOOLS = [
             "required": ["action"],
         },
     ),
+    Tool(
+        name="pardusdb_get_stats",
+        description="Get token savings statistics. Shows session and total stats including tokens sent, tokens if full doc, and savings percentage.",
+        inputSchema={
+            "type": "object",
+            "properties": {},
+        },
+    ),
+    Tool(
+        name="pardusdb_set_model",
+        description="Set the current LLM model for accurate token tracking. Updates the context window and provider info.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "model": {"type": "string", "description": "Model name (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')"},
+            },
+            "required": ["model"],
+        },
+    ),
+    Tool(
+        name="pardusdb_reset_stats",
+        description="Reset session statistics. Keeps total accumulated stats but starts a new session counter.",
+        inputSchema={
+            "type": "object",
+            "properties": {},
+        },
+    ),
 ]
 
 
@@ -1941,6 +2183,12 @@ async def call_tool(name: str, args: dict[str, Any]) -> list[TextContent]:
         result = await handle_ingest_async(args)
     elif name == "pardusdb_ingest_status":
         result = await handle_ingest_status(args)
+    elif name == "pardusdb_get_stats":
+        result = await handle_get_stats(args)
+    elif name == "pardusdb_set_model":
+        result = await handle_set_model(args)
+    elif name == "pardusdb_reset_stats":
+        result = await handle_reset_stats(args)
     else:
         result = {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
 

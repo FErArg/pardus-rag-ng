@@ -9,10 +9,82 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() > 1 {
-        let path = &args[1];
-        run_with_file(path);
+        let arg = &args[1];
+        if arg == "--stats" {
+            show_stats();
+        } else {
+            run_with_file(arg);
+        }
     } else {
         run_repl();
+    }
+}
+
+fn show_stats() {
+    let stats_path = dirs::home_dir()
+        .map(|h| h.join(".pardus").join("mcp_stats.json"))
+        .unwrap_or_else(|| PathBuf::from(".pardus/mcp_stats.json"));
+
+    println!("╔═══════════════════════════════════════════════════════════════╗");
+    println!("║              PARDUSDB TOKEN DASHBOARD                        ║");
+    println!("╠═══════════════════════════════════════════════════════════════╣");
+
+    if stats_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&stats_path) {
+            if let Ok(stats) = serde_json::from_str::<serde_json::Value>(&content) {
+                let model = stats["config"]["model"].as_str().unwrap_or("unknown");
+                let provider = stats["config"]["provider"].as_str().unwrap_or("unknown");
+                let ctx = stats["config"]["context_window"].as_i64().unwrap_or(0);
+
+                println!("║  MODEL: {}                                ║", truncate(model, 54));
+                println!("║  Provider: {} | Context: {:>12} tokens   ║", provider, ctx);
+                println!("╠═══════════════════════════════════════════════════════════════╣");
+                println!("║  SESIÓN                                    TOTAL           ║");
+                println!("║  ─────────────────────────────────────────────────────────   ║");
+
+                let sq = stats["session"]["queries"].as_i64().unwrap_or(0);
+                let st = stats["session"]["tokens_sent"].as_i64().unwrap_or(0);
+                let sfull = stats["session"]["tokens_if_full"].as_i64().unwrap_or(0);
+                let ssave = sfull - st;
+                let spct = if sfull > 0 { (ssave as f64 / sfull as f64 * 100.0) as i64 } else { 0 };
+
+                let tq = stats["total"]["queries"].as_i64().unwrap_or(0);
+                let tt = stats["total"]["tokens_sent"].as_i64().unwrap_or(0);
+                let tfull = stats["total"]["tokens_if_full"].as_i64().unwrap_or(0);
+                let tsave = tfull - tt;
+                let tpct = if tfull > 0 { (tsave as f64 / tfull as f64 * 100.0) as i64 } else { 0 };
+
+                println!("║  Queries: {:>6}                    Total: {:>10}         ║", sq, tq);
+                println!("║  Tokens: {:>6}                     Total: {:>10}         ║", format_num(st), format_num(tt));
+                println!("║  Savings: {:>5} ({:>3}%)               Savings: {:>9} ({:>3}%) ║", format_num(ssave), spct, format_num(tsave), tpct);
+                println!("╚═══════════════════════════════════════════════════════════════╝");
+                return;
+            }
+        }
+        println!("║  Error reading stats file                                  ║");
+    } else {
+        println!("║  No stats file found                                       ║");
+        println!("║  Run some queries first to see statistics here               ║");
+    }
+    println!("╚═══════════════════════════════════════════════════════════════╝");
+    println!("\nStats file: {}", stats_path.display());
+}
+
+fn truncate(s: &str, max: usize) -> String {
+    if s.len() > max {
+        format!("{}...", &s[..max-3])
+    } else {
+        s.to_string()
+    }
+}
+
+fn format_num(n: i64) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    } else if n >= 1_000 {
+        format!("{:.1}K", n as f64 / 1_000.0)
+    } else {
+        n.to_string()
     }
 }
 

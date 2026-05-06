@@ -1,6 +1,6 @@
 # AGENTS.md — PardusDB MCP Server
 
-## Tools Available (17 MCP Tools)
+## Tools Available (20 MCP Tools)
 
 | Tool | When to Use |
 |------|-------------|
@@ -21,6 +21,9 @@
 | `ingest_status` | Ver progreso de job async |
 | `health_check` | Verificar integridad de tabla |
 | `get_schema` | Ver estructura de tabla |
+| `get_stats` | **NUEVO** — Ver estadísticas de tokens ahorrados |
+| `set_model` | **NUEVO** — Configurar modelo LLM para tracking preciso |
+| `reset_stats` | **NUEVO** — Resetear contadores de sesión |
 
 ### MCP Defaults
 
@@ -136,6 +139,60 @@ Si falta lib para cierto formato → ese archivo se skippea con warning.
 | Timeout en import | Archivo muy grande | Usar `ingest_async` |
 | Duplicate chunks | Hash ya existe | Normal — skippea automáticamente |
 | Wrong vector dim | Dim distinta en query vs tabla | Verificar `vector_dim` en `create_table` y query |
+
+## Token Savings Dashboard
+
+El MCP server rastrea tokens ahorrados al usar RAG. Esto justifica el uso y control de gastos.
+
+### Nuevas Tools
+
+| Tool | Descripción |
+|------|-------------|
+| `get_stats` | Muestra dashboard de tokens (session + total) |
+| `set_model` | Configura el modelo LLM actual para tracking preciso |
+| `reset_stats` | Resetea contadores de sesión |
+
+### Uso
+
+```python
+# Ver estadísticas de tokens
+get_stats()
+
+# Configurar modelo (importante para cálculos precisos)
+set_model(model="gpt-4o")
+# o
+set_model(model="claude-3-5-sonnet-20241022")
+# o
+set_model(model="gemini-2.0-flash")
+
+# Resetear contadores de sesión
+reset_stats()
+```
+
+### Modelos Soportados
+
+Los siguientes providers y modelos están soportados para context window tracking:
+
+| Provider | Modelos | Context Windows |
+|----------|---------|-----------------|
+| OpenAI | GPT-4o, GPT-4o-mini, GPT-4.1, GPT-5.4/5.5 | 128K - 1.05M tokens |
+| Anthropic | Claude 3.5 Sonnet, Claude Opus 4, Claude Haiku | 200K - 1M tokens |
+| Google/Gemini | Gemini 2.0/2.5 Flash, Gemini 3 Pro, Gemini Exp | 8K - 2M tokens |
+| DeepSeek | DeepSeek Chat, DeepSeek V3, DeepSeek R1 | 65K - 164K tokens |
+| MiniMax | MiniMax M2.1, M2.5 | 200K - 1M tokens |
+| Qwen/Alibaba | Qwen 3, Qwen 3.5, Qwen Coder | 8K - 1M tokens |
+| Z.ai | GLM-4, GLM-5 | 65K - 205K tokens |
+
+### CLI Stats
+
+```bash
+# Ver stats desde CLI
+pardusdb --stats
+```
+
+### Dashboard Web
+
+Abre `mcp/dashboard.html` en un navegador para ver el dashboard visual con auto-refresh.
 
 ## Security Notes (para production)
 
