@@ -5,6 +5,18 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.22] - 2026-05-06
+
+### Fixed
+
+- **MCP wrapper path mismatch**: Fixed install scripts to copy all source files from `mcp/src/*.py` instead of just `server.py`. This fixes `ModuleNotFoundError` for `model_context` module.
+- **MCP server import fix** (`mcp/src/server.py`): Added `sys.path` insertion before imports to ensure `model_context` module is found when server runs as a script.
+- **Uninstall cleanup**: Added removal of `pardusdb` entry from `opencode.json` during uninstall (both Linux and macOS installers).
+
+### Changed
+
+- **OpenCode MCP configuration**: OpenCode config now uses `run_pardusdb_mcp.sh` wrapper script instead of calling `python3 server.py` directly. This ensures proper venv activation on macOS.
+
 ## [0.4.19] - 2026-05-02
 
 ### Changed

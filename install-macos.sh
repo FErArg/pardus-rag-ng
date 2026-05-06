@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.21"
+VERSION="0.4.22"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 OS=$(uname -s)
@@ -230,9 +230,9 @@ install_mcp() {
         return
     fi
 
-    mkdir -p "$MCP_DIR"
+    mkdir -p "$MCP_DIR/src"
 
-    cp "$SCRIPT_DIR/mcp/src/server.py" "$MCP_DIR/"
+    cp "$SCRIPT_DIR/mcp/src/"*.py "$MCP_DIR/src/"
 
     echo "  Instalando paquete MCP de Python en virtual environment..."
 
@@ -250,12 +250,12 @@ install_mcp() {
 
     cat > "$MCP_DIR/run_mcp.sh" << WRAPPER_EOF
 #!/bin/bash
-exec "$MCP_DIR/venv/bin/python" "$MCP_DIR/server.py"
+exec "$MCP_DIR/venv/bin/python" "$MCP_DIR/src/server.py"
 WRAPPER_EOF
     chmod +x "$MCP_DIR/run_mcp.sh"
 
-    echo "  MCP server instalado en: $MCP_DIR/"
-    echo "  Wrapper: $MCP_DIR/run_mcp.sh"
+    echo "  MCP server instalado en: $MCP_DIR/src/server.py"
+    echo "  Wrapper: $MCP_DIR/run_pardusdb_mcp.sh"
 }
 
 install_document_dependencies() {
@@ -303,7 +303,7 @@ install_sentence_transformers() {
 configure_opencode() {
     echo "[7/9] Configurando OpenCode..."
 
-    if [ ! -f "$MCP_DIR/server.py" ]; then
+    if [ ! -f "$MCP_DIR/run_pardusdb_mcp.sh" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
         return
     fi
@@ -492,6 +492,28 @@ do_uninstall() {
         rm -rf "$CONFIG_DIR"
         echo "  Eliminado: $CONFIG_DIR/"
         removed=1
+    fi
+
+    OPCODE_CONFIG="$HOME/.config/opencode/opencode.json"
+    if [ -f "$OPCODE_CONFIG" ]; then
+        if python3 -c "
+import json
+with open('$OPCODE_CONFIG') as f:
+    cfg = json.load(f)
+changed = False
+if 'mcp' in cfg and 'pardusdb' in cfg['mcp']:
+    del cfg['mcp']['pardusdb']
+    changed = True
+    if not cfg['mcp']:
+        del cfg['mcp']
+if changed:
+    with open('$OPCODE_CONFIG', 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write('\n')
+" 2>/dev/null; then
+            echo "  Limpiado: $OPCODE_CONFIG (entrada pardusdb)"
+            removed=1
+        fi
     fi
 
     if [ $removed -eq 0 ]; then

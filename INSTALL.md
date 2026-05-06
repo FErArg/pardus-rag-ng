@@ -37,7 +37,7 @@ cd pardusdb
 **What it does:**
 1. Checks for Rust/Cargo (installs via rustup.rs if missing)
 2. Compiles `pardusdb` with `cargo build --release`
-3. Saves the compiled binary to `bin/pardus-v0.4.21-{platform}-{arch}` for future use
+3. Saves the compiled binary to `bin/pardus-v0.4.22-{platform}-{arch}` for future use
 4. Installs the binary, helper, MCP server, config, Python SDK
 5. Creates default database
 
@@ -54,11 +54,11 @@ cd pardusdb
 ```
 
 **What it does:**
-1. Copies the precompiled binary from `bin/pardus-v0.4.21-linux-x86_64` to `~/.local/bin/pardusdb`
+1. Copies the precompiled binary from `bin/pardus-v0.4.22-linux-x86_64` to `~/.local/bin/pardusdb`
 2. Installs the helper, MCP server, config, Python SDK
 3. Creates default database
 
-**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.21-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
+**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.22-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
 
 **Use this when:** You just want to install quickly, don't have Rust, or are deploying from a release tarball.
 
@@ -78,12 +78,12 @@ cd pardusdb
 1. Checks for Python 3.10+ (required by the `mcp` Python package)
 2. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
 3. If Python < 3.10 and no Homebrew: shows instructions and exits
-4. Requires `bin/pardus-v0.4.21-darwin-arm64` in the repo — if missing, compile on your Mac with `cargo build --release` and copy to `bin/pardus-v0.4.21-darwin-arm64`
+4. Requires `bin/pardus-v0.4.22-darwin-arm64` in the repo — if missing, compile on your Mac with `cargo build --release` and copy to `bin/pardus-v0.4.22-darwin-arm64`
 5. Copies the precompiled binary to `~/.local/bin/pardusdb`
 6. Installs the helper, MCP server, config
 7. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
 8. Installs the `mcp` package inside the venv
-9. Generates a wrapper script `~/.pardus/mcp/run_mcp.sh`
+9. Generates a wrapper script `~/.pardus/mcp/run_pardusdb_mcp.sh`
 10. Creates default database
 
 **Why a virtual environment?** Isolates the MCP Python package and all its dependencies (including `sentence-transformers` for embeddings) from system packages. Works alongside macOS system Python 3.9 without conflicts.
@@ -94,7 +94,7 @@ cd pardusdb
   "mcp": {
     "pardusdb": {
       "type": "local",
-      "command": ["$HOME/.pardus/mcp/run_mcp.sh"],
+      "command": ["$HOME/.pardus/mcp/run_pardusdb_mcp.sh"],
       "enabled": true
     }
   }
@@ -281,7 +281,7 @@ Add this to your OpenCode configuration file (`~/.config/opencode/opencode.json`
   "mcp": {
     "pardusdb": {
       "type": "local",
-      "command": ["python3", "/home/${USER}/.pardus/mcp/server.py"],
+      "command": ["/home/${USER}/.pardus/mcp/run_pardusdb_mcp.sh"],
       "enabled": true
     }
   }

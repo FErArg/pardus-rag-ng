@@ -9,7 +9,7 @@ Agregar en el archivo de configuración MCP del proyecto (e.g., `opencode.json`)
   "mcp": {
     "pardusdb": {
       "type": "local",
-      "command": ["python3", "/path/to/mcp/server.py"],
+      "command": ["/path/to/mcp/run_pardusdb_mcp.sh"],
       "enabled": true
     }
   }

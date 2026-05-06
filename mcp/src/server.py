@@ -21,6 +21,10 @@ from pathlib import Path
 import re
 from typing import Any, List, Optional
 
+_SCRIPT_DIR = Path(__file__).parent.resolve()
+if _SCRIPT_DIR not in [Path(p).resolve() for p in sys.path]:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
 try:
     from .model_context import (
         get_context_window_for_model,
@@ -42,7 +46,7 @@ except ImportError as exc:
     is_macos = sys.platform == "darwin"
     if is_macos:
         print("Error: mcp package not found.", file=sys.stderr)
-        print("On macOS, run this script via ~/.pardus/mcp/run_mcp.sh, not directly with python3.", file=sys.stderr)
+        print("On macOS, run this script via ~/.pardus/mcp/run_pardusdb_mcp.sh, not directly with python3.", file=sys.stderr)
         print("(The installer creates a virtual environment that contains the mcp package.)", file=sys.stderr)
     else:
         print("Error: mcp package not found. Install with: pip install mcp", file=sys.stderr)
@@ -2133,7 +2137,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.21")
+server = Server("pardusdb-mcp", "0.4.22")
 
 
 @server.list_tools()

@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="0.4.21"
+VERSION="0.4.22"
 BINARY_NAME="pardusdb"
 HELPER_NAME="pardus"
 OS=$(uname -s)
@@ -171,9 +171,11 @@ install_mcp() {
         return
     fi
 
-    mkdir -p "$MCP_DIR"
+    mkdir -p "$MCP_DIR/src"
 
-    cp "$SCRIPT_DIR/mcp/src/server.py" "$MCP_DIR/"
+    cp "$SCRIPT_DIR/mcp/src/"*.py "$MCP_DIR/src/"
+    cp "$SCRIPT_DIR/mcp/run_pardusdb_mcp.sh" "$MCP_DIR/"
+    chmod +x "$MCP_DIR/run_pardusdb_mcp.sh"
 
     echo "  Instalando paquete MCP de Python..."
 
@@ -191,12 +193,13 @@ install_mcp() {
         PIP_CMD="python3 -m pip"
     fi
 
-    $PIP_CMD install mcp --quiet $pip_extra || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+    $Pip_cmd install mcp --quiet $pip_extra || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
 
     mcp_state=$(python3 -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "fallo")
     echo "  - mcp (Python package): $mcp_state"
 
-    echo "  MCP server instalado en: $MCP_DIR/server.py"
+    echo "  MCP server instalado en: $MCP_DIR/src/server.py"
+    echo "  Wrapper: $MCP_DIR/run_pardusdb_mcp.sh"
 }
 
 install_document_dependencies() {
@@ -247,7 +250,7 @@ install_sentence_transformers() {
 configure_opencode() {
     echo "[7/9] Configurando OpenCode..."
 
-    if [ ! -f "$MCP_DIR/server.py" ]; then
+    if [ ! -f "$MCP_DIR/run_pardusdb_mcp.sh" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
         return
     fi
@@ -273,7 +276,7 @@ configure_opencode() {
         echo "  Skill copiado: $OPCODE_SKILLS_DIR/pardusdb.md"
     fi
 
-    local MCP_PATH="/home/$REAL_USER/.pardus/mcp/server.py"
+    local MCP_PATH="$MCP_DIR/run_pardusdb_mcp.sh"
 
     if [ -f "$OPCODE_CONFIG" ]; then
         if python3 -c "
@@ -295,7 +298,7 @@ if 'mcp' not in cfg:
     cfg['mcp'] = {}
 cfg['mcp']['pardusdb'] = {
     'type': 'local',
-    'command': ['python3', '$MCP_PATH'],
+    'command': ['$MCP_PATH'],
     'enabled': True
 }
 with open('$OPCODE_CONFIG', 'w') as f:
@@ -310,7 +313,7 @@ with open('$OPCODE_CONFIG', 'w') as f:
   "mcp": {
     "pardusdb": {
       "type": "local",
-      "command": ["python3", "$MCP_PATH"],
+      "command": ["$MCP_PATH"],
       "enabled": true
     }
   }
@@ -431,6 +434,28 @@ do_uninstall() {
         rm -rf "$CONFIG_DIR"
         echo "  Eliminado: $CONFIG_DIR/"
         removed=1
+    fi
+
+    OPCODE_CONFIG="$HOME/.config/opencode/opencode.json"
+    if [ -f "$OPCODE_CONFIG" ]; then
+        if python3 -c "
+import json
+with open('$OPCODE_CONFIG') as f:
+    cfg = json.load(f)
+changed = False
+if 'mcp' in cfg and 'pardusdb' in cfg['mcp']:
+    del cfg['mcp']['pardusdb']
+    changed = True
+    if not cfg['mcp']:
+        del cfg['mcp']
+if changed:
+    with open('$OPCODE_CONFIG', 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write('\n')
+" 2>/dev/null; then
+            echo "  Limpiado: $OPCODE_CONFIG (entrada pardusdb)"
+            removed=1
+        fi
     fi
 
     if [ $removed -eq 0 ]; then
