@@ -7,5 +7,5 @@ A simple, Pythonic interface for PardusDB vector database.
 from .client import PardusDB, VectorResult
 from .errors import PardusDBError, ConnectionError, QueryError
 
-__version__ = "0.4.22"
+__version__ = "0.4.23"
 __all__ = ["PardusDB", "VectorResult", "PardusDBError", "ConnectionError", "QueryError"]

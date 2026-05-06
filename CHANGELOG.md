@@ -5,6 +5,17 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.23] - 2026-05-06
+
+### Added
+
+- **Model context auto-update from litellm**: New `mcp/src/model_fetch.py` module that fetches the latest model context windows from litellm GitHub repository. Data is cached to `~/.pardus/mcp_model_context.json` for offline use.
+- **`refresh_model_context` MCP tool**: New tool that manually refreshes the model context cache from litellm. Use this when you need the most up-to-date model information.
+
+### Changed
+
+- **`set_model()` auto-refresh**: When `set_model()` fails to find a model locally, it now auto-refreshes the model context from litellm and retries before returning an error.
+
 ## [0.4.22] - 2026-05-06
 
 ### Fixed

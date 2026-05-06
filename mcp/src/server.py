@@ -1858,6 +1858,16 @@ async def handle_reset_stats(args: dict[str, Any]) -> dict[str, Any]:
         return {"content": [{"type": "text", "text": f"Error resetting stats: {e}"}], "isError": True}
 
 
+async def handle_refresh_model_context(args: dict[str, Any]) -> dict[str, Any]:
+    """Refresh model context from litellm GitHub."""
+    try:
+        from model_context import refresh_model_context
+        result = refresh_model_context(verbose=True)
+        return {"content": [{"type": "text", "text": f"Model context refreshed. Total models: {len(result)}"}]}
+    except Exception as e:
+        return {"content": [{"type": "text", "text": f"Error refreshing model context: {e}"}], "isError": True}
+
+
 # ==================== Tool Definitions ====================
 
 TOOLS = [
@@ -2132,12 +2142,20 @@ TOOLS = [
             "properties": {},
         },
     ),
+    Tool(
+        name="pardusdb_refresh_model_context",
+        description="Fetch latest model context from litellm GitHub repository. Updates the local cache of model context windows (stored in ~/.pardus/mcp_model_context.json). Use this when you need the most up-to-date model information or when set_model fails to find a model.",
+        inputSchema={
+            "type": "object",
+            "properties": {},
+        },
+    ),
 ]
 
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.22")
+server = Server("pardusdb-mcp", "0.4.23")
 
 
 @server.list_tools()
@@ -2193,6 +2211,8 @@ async def call_tool(name: str, args: dict[str, Any]) -> list[TextContent]:
         result = await handle_set_model(args)
     elif name == "pardusdb_reset_stats":
         result = await handle_reset_stats(args)
+    elif name == "pardusdb_refresh_model_context":
+        result = await handle_refresh_model_context(args)
     else:
         result = {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
 

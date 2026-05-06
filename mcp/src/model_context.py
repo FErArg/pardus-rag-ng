@@ -1,10 +1,10 @@
 """
 Model Context Windows Database
- sourced from litellm model_prices_and_context_window.json
- Updated: 2026-05-06
+  sourced from litellm model_prices_and_context_window.json
+  Updated: 2026-05-06
 """
 
-MODEL_CONTEXT_WINDOWS = {
+MODEL_CONTEXT_BUNDLED = {
     # OpenAI (447 models)
     "openai/gpt-5.4": 1050000,
     "openai/gpt-5.4-2026-03-05": 1050000,
@@ -126,20 +126,76 @@ MODEL_PROVIDERS = {
     "zai": ["z-ai", "zai/", "glm-"],
 }
 
+# Module-level cache for merged model context (bundled + cached/fetched)
+_model_context_cache: dict = {}
+_model_context_initialized: bool = False
+
+
+def _ensure_initialized():
+    """Ensure the model context cache is initialized."""
+    global _model_context_cache, _model_context_initialized
+    if not _model_context_initialized:
+        _model_context_cache = dict(MODEL_CONTEXT_BUNDLED)
+        _model_context_initialized = True
+
+
+def refresh_model_context(verbose: bool = False) -> dict:
+    """
+    Manually refresh model context from litellm GitHub repository.
+
+    Merges fetched data with bundled defaults (fetched takes precedence).
+
+    Returns:
+        Merged dictionary of all known models.
+    """
+    global _model_context_cache
+
+    _ensure_initialized()
+
+    try:
+        from .model_fetch import fetch_model_context, get_cache_age_days
+
+        data, was_fetched = fetch_model_context()
+
+        if was_fetched:
+            _model_context_cache = {**MODEL_CONTEXT_BUNDLED, **data}
+            if verbose:
+                print(f"Model context refreshed from litellm: {len(data)} models fetched, {len(_model_context_cache)} total")
+        else:
+            cached_data, age_days = get_cache_age_days()
+            if cached_data:
+                _model_context_cache = {**MODEL_CONTEXT_BUNDLED, **cached_data}
+                if verbose:
+                    print(f"Using cached model context (age: {age_days} days), {len(_model_context_cache)} total models")
+            else:
+                if verbose:
+                    print("No cached model context available, using bundled defaults")
+                _model_context_cache = dict(MODEL_CONTEXT_BUNDLED)
+
+    except Exception as e:
+        if verbose:
+            print(f"Warning: Failed to refresh model context: {e}. Using cached data.")
+        _ensure_initialized()
+
+    return _model_context_cache
+
+
 def get_context_window_for_model(model_name: str) -> int:
     """
     Get context window for a model by name.
     Falls back to common defaults if exact model not found.
     """
+    _ensure_initialized()
+
     model_lower = model_name.lower()
 
-    # Direct match
-    for key, ctx in MODEL_CONTEXT_WINDOWS.items():
+    # Direct match in cache
+    for key, ctx in _model_context_cache.items():
         if key.lower() == model_lower:
             return ctx
 
-    # Partial match (model contains key)
-    for key, ctx in MODEL_CONTEXT_WINDOWS.items():
+    # Partial match in cache
+    for key, ctx in _model_context_cache.items():
         if key.lower() in model_lower or model_lower in key.lower():
             return ctx
 
@@ -166,6 +222,7 @@ def get_context_window_for_model(model_name: str) -> int:
     # Default fallback
     return 128000
 
+
 def detect_provider(model_name: str) -> str:
     """Detect provider from model name."""
     model_lower = model_name.lower()
@@ -173,6 +230,7 @@ def detect_provider(model_name: str) -> str:
         if any(p in model_lower for p in patterns):
             return provider
     return "unknown"
+
 
 # Default tokens per chunk (used for estimation)
 DEFAULT_TOKENS_PER_CHUNK = 300

@@ -151,6 +151,7 @@ El MCP server rastrea tokens ahorrados al usar RAG. Esto justifica el uso y cont
 | `get_stats` | Muestra dashboard de tokens (session + total) |
 | `set_model` | Configura el modelo LLM actual para tracking preciso |
 | `reset_stats` | Resetea contadores de sesión |
+| `refresh_model_context` | Actualiza cache de modelos desde litellm GitHub |
 
 ### Uso
 
@@ -167,6 +168,9 @@ set_model(model="gemini-2.0-flash")
 
 # Resetear contadores de sesión
 reset_stats()
+
+# Actualizar cache de modelos desde litellm
+refresh_model_context()
 ```
 
 ### Modelos Soportados
