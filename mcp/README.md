@@ -1,6 +1,6 @@
 # PardusDB MCP Server
 
-Model Context Protocol (MCP) server for [PardusDB](https://github.com/pardus-ai/pardusdb) - A fast, SQLite-like embedded vector database.
+Model Context Protocol (MCP) server for [PardusDB](https://github.com/FErArg/PardusDB) - A fast, SQLite-like embedded vector database.
 
 This server enables AI agents like Claude to interact with PardusDB for vector similarity search, making it easy to build RAG applications, semantic search, and recommendation systems.
 
@@ -16,7 +16,7 @@ This server enables AI agents like Claude to interact with PardusDB for vector s
 
 1. **Install PardusDB**:
    ```bash
-   git clone https://github.com/pardus-ai/pardusdb
+   git clone https://github.com/FErArg/PardusDB
    cd pardusdb
    ./setup.sh
    ```
@@ -258,6 +258,6 @@ MIT License
 
 ## Links
 
-- **PardusDB**: https://github.com/pardus-ai/pardusdb
+- **PardusDB**: https://github.com/FErArg/PardusDB
 - **Pardus AI**: https://pardusai.org/
 - **MCP Documentation**: https://modelcontextprotocol.io/

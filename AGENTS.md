@@ -1,33 +1,147 @@
-# AGENTS.md
+# AGENTS.md — PardusDB MCP Server
 
-## Repo Shape
+## Tools Available (17 MCP Tools)
 
-- Root is a single Rust crate, not a Cargo workspace. Core API is `src/lib.rs`; CLI entrypoint is `src/main.rs`.
-- Sidecars live outside the Rust crate: `mcp/src/server.py`, `sdk/python/`, and `sdk/typescript/pardusdb/`.
-- `pardusdb` with no args starts an in-memory REPL. `pardusdb <path>` opens or creates a file-backed DB and reads commands from `stdin` until `quit`.
-- The MCP server and both SDKs shell out to the `pardusdb` binary and parse its text output. Treat CLI output and meta-command behavior as compatibility-sensitive.
+| Tool | When to Use |
+|------|-------------|
+| `create_database` | Crear nuevo archivo .pardus |
+| `open_database` | Abrir DB existente antes de otras operaciones |
+| `create_table` | Crear tabla con VECTOR(dim) + columnas metadata |
+| `insert_vector` | Insertar 1 solo vector |
+| `batch_insert` | Insertar múltiples vectors de una vez |
+| `search_similar` | Buscar por vector (pre-generado externamente) |
+| `search_text` | Buscar por texto (el servidor genera embedding automáticamente) |
+| `execute_sql` | SQL raw — SOLO si no hay tool específica (AVANZADO) |
+| `list_tables` / `use_table` | Gestionar tabla activa |
+| `status` | Verificar conexión actual |
+| `import_text` | Importar directorio completo (PDF, DOCX, XLSX, CSV, JSON, MD, TXT) |
+| `ingest_chunked` | Ingestar 1 archivo con sentence-aware chunking |
+| `ingest_joplin` | Ingestar nota de Joplin (después de joplin_read_note) |
+| `ingest_async` | Archivos grandes (50MB+) — evita timeout |
+| `ingest_status` | Ver progreso de job async |
+| `health_check` | Verificar integridad de tabla |
+| `get_schema` | Ver estructura de tabla |
 
-## Commands
+### MCP Defaults
 
-- Rust build: `cargo build --release`
-- Full Rust tests: `cargo test`
-- Focused Rust integration tests: `cargo test --test database_test`, `cargo test --test concurrent_test`, `cargo test --test sql_parser_test`, `cargo test --test bug_dimension_mismatch`
-- Example app: `cargo run --example simple_rag --release`
-- GPU paths require `--features gpu`
-- Python SDK checks: `cd sdk/python && pip install -e ".[dev]" && pytest && ruff check && mypy pardusdb`
-- TypeScript SDK checks: `cd sdk/typescript/pardusdb && npm install && npm test && npm run build`
+- Embedding dimension: **384** (model: `all-MiniLM-L6-v2`)
+- Max file size: **50MB**
+- Sentence-transformers: **opcional** — si no está, usa zero vectors
 
-## Behavior Gotchas
+## System Behavior
 
-- The `pardus` helper script is the persistent default-DB entrypoint: with no args it auto-creates and opens `~/.pardus/pardus-rag.db`. The raw `pardusdb` binary does not do that; no-path mode is in-memory only.
-- `Database::open(path)` creates the file if it does not exist. File-backed flows often rely on that implicit create behavior.
-- SQL vectors use square brackets, e.g. `[0.1, 0.2]`. Similarity syntax is `WHERE embedding SIMILARITY [..]`, and results are distance-ascending.
-- `mcp/src/server.py` defaults embedding-based text tools to dimension `384` and model `all-MiniLM-L6-v2`.
-- If `sentence-transformers` is unavailable, MCP text import/search code falls back to zero vectors instead of hard-failing.
-- `sdk/typescript/pardusdb/package.json` defines `npm run lint`, but does not declare `eslint` in `devDependencies`; do not assume lint works in a clean checkout.
-- `Cargo.toml` uses `edition = "2024"` which is non-standard (stable Rust uses 2021); avoid changing this unless you also update the toolchain.
+### Helper vs Binary (importante para user)
 
-## Release Notes
+```
+pardus              → Abre ~/.pardus/pardus-rag.db (crea si no existe)
+pardusdb            → REPL: in-memory o busca database.pardus en CWD
+pardusdb <path>     → Abre archivo específico
+```
 
-- Version strings that affect shipped artifacts are duplicated in `Cargo.toml`, `mcp/src/server.py`, `sdk/python/pyproject.toml`, `sdk/typescript/pardusdb/package.json`, `setup.sh`, `install.sh`, and `install-macos.sh`. `README.md` and `INSTALL.md` also hardcode the current version and versioned binary filenames; update them all in the same release change.
-- `sdk/python/pardusdb/__init__.py` still reports `__version__ = "0.1.0"` while `Cargo.toml` and package metadata report `0.4.16` — this mismatch must be fixed before publishing.
+### Tmp Directory (ingestión)
+
+**Proceso actual**:
+1. Archivo se convierte a `.md` en `./tmp/{uuid}/`
+2. Se parsea el `.md` y se ingiere a la DB
+3. Si ingreso exitoso → tmp se borra
+4. Si hay error → tmp se preserva (path visible en error message)
+
+**Nota**: El tmp se limpia SOLO después de confirmación de DB exitosa.
+
+## SQL Reference
+
+```sql
+-- Vectores usan corchetes
+INSERT INTO docs (embedding, content) VALUES ([0.1, 0.2, ...], 'texto');
+
+-- Similarity search (resultados ordenados por distancia ascendente)
+SELECT * FROM docs WHERE embedding SIMILARITY [0.1, 0.2, ...] LIMIT 10;
+
+-- Crear tabla
+CREATE TABLE docs (embedding VECTOR(384), content TEXT, title TEXT);
+```
+
+## Common Workflows
+
+### RAG Pipeline Completo
+
+```python
+# 1. Abrir/crear DB
+open_database(path="/home/user/mi.db")
+
+# 2. Crear tabla (384 dim para MiniLM)
+create_table(table="docs", vector_dim=384, metadata_schema={"content": "TEXT", "title": "TEXT"})
+
+# 3. Importar documentos
+import_text(dir_path="/home/user/docs", table="docs", recursive=true)
+
+# 4. Buscar por texto (embedding auto-generado)
+search_text(query="que documentos hay sobre X", table="docs", k=5)
+```
+
+### Ingestar Archivo Grande (evitar timeout)
+
+```python
+# 1. Abrir DB
+open_database(path="/home/user/mi.db")
+
+# 2. Usar ingest_async (retorna job_id inmediatamente)
+ingest_async(file_path="/home/user/docs/informe.pdf", table="docs", chunk_size=500)
+
+# 3. Monitorear progreso
+ingest_status(job_id="job_000001")
+
+# 4. Repetir hasta status="completed"
+```
+
+### Ingestar Nota de Joplin
+
+```python
+# 1. Leer nota de Joplin (usar joplin_read_note tool)
+# 2. Ingestar con metadata
+ingest_joplin(
+    table="notas",
+    note_id="notebook_id:nota_id",
+    note_title="Mi Nota",
+    note_content="contenido completo...",
+    note_tags="tag1,tag2"
+)
+```
+
+## Import File Formats
+
+- **PDF**: pypdf (requiere `pip install pypdf`)
+- **DOCX**: python-docx
+- **XLSX**: openpyxl
+- **XLS**: xlrd
+- **CSV, JSON, JSONL, MD, TXT**: parsing nativo
+
+Si falta lib para cierto formato → ese archivo se skippea con warning.
+
+## Limitations & Gotchas
+
+1. **No auth en MCP** — cualquier cliente puede ejecutar cualquier operación (ver plan de seguridad)
+2. **Singleton db_client** — sin isolation entre callers/concurrent requests
+3. **execute_sql** — pasa SQL raw al backend (usar solo si no hay tool específica)
+4. **Zero vectors fallback** — si sentence-transformers no instalado, embeddings son [0,0,...]
+5. **Ingest async jobs** — no hay cleanup automático de jobs muy viejos
+6. **Tmp paths en errores** — en debug mode se exponen paths internos de tmp
+
+## Troubleshooting
+
+| Problema | Causa probable | Solución |
+|---------|---------------|----------|
+| "Database not found" | DB no abierta | Usar `open_database` primero |
+| "sentence-transformers not installed" | Paquete no instalado | `pip install sentence-transformers` |
+| Timeout en import | Archivo muy grande | Usar `ingest_async` |
+| Duplicate chunks | Hash ya existe | Normal — skippea automáticamente |
+| Wrong vector dim | Dim distinta en query vs tabla | Verificar `vector_dim` en `create_table` y query |
+
+## Security Notes (para production)
+
+Sin configurar, el MCP server permite:
+- Abrir/crear archivos en cualquier path
+- Ejecutar SQL arbitrario via `execute_sql`
+- No hay autenticación ni autorización
+
+**Para production**: Configurar `PARDUSDB_API_KEY` y `PARDUSDB_ALLOWED_DIRS` (ver plan de seguridad en `planes/seguridad-2026-05-02.md`)
