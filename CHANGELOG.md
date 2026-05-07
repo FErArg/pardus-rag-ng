@@ -5,6 +5,17 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.28] - 2026-05-07
+
+### Added
+
+- **macOS source installer**: Added `setup-macos.sh` for macOS source installs without changing the Linux/general `setup.sh` flow.
+
+### Fixed
+
+- **macOS MCP package installation**: `setup-macos.sh` validates Python 3.10+, recreates the MCP virtual environment with the selected Python, installs `mcp` with `python -m pip`, and verifies `from mcp.server import Server` so MCP install failures are surfaced with pip output instead of hidden warnings.
+- **macOS install docs**: Updated README and INSTALL instructions to recommend `setup-macos.sh` for macOS source builds and reserve `install-macos.sh` for precompiled macOS binaries.
+
 ## [0.4.27] - 2026-05-07
 
 ### Fixed

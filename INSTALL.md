@@ -9,7 +9,7 @@ Complete installation and configuration guide for PardusDB.
 
 ## Quick Install
 
-Two installers are provided. Both install the same components — the only difference is how the binary is obtained.
+Multiple installers are provided. Use the macOS-specific scripts on macOS so the MCP Python package is installed inside a compatible virtual environment.
 
 ### Components Installed by Both
 
@@ -26,7 +26,7 @@ The default database `~/.pardus/pardus-rag.db` is auto-created after installatio
 
 ---
 
-### Option 1: setup.sh — Build from source (requires Rust)
+### Option 1: setup.sh — Build from source on Linux (requires Rust)
 
 ```bash
 git clone https://github.com/pardus-ai/pardusdb
@@ -36,13 +36,13 @@ cd pardusdb
 
 **What it does:**
 1. Checks for Rust/Cargo (installs via rustup.rs if missing)
-2. Detects your platform (Linux or macOS Apple Silicon)
+2. Builds from source for the current platform
 3. Compiles `pardusdb` with `cargo build --release`
-4. Saves the compiled binary to `bin/pardus-v0.4.27-{platform}-{arch}` for future use
+4. Saves the compiled binary to `bin/pardus-v0.4.28-{platform}-{arch}` for future use
 5. Installs the binary, helper, MCP server, config, Python SDK
 6. Creates default database
 
-**Use this when:** You want the latest source code, have modified Rust files, or are setting up a development environment. **Works on both Linux and macOS.**
+**Use this when:** You want the latest source code on Linux, have modified Rust files, or are setting up a Linux development environment. **On macOS, use `setup-macos.sh` instead.**
 
 ---
 
@@ -55,15 +55,13 @@ cd pardusdb
 ```
 
 **What it does:**
-1. Copies the precompiled binary from `bin/pardus-v0.4.27-linux-x86_64` to `~/.local/bin/pardusdb`
+1. Copies the precompiled binary from `bin/pardus-v0.4.28-linux-x86_64` to `~/.local/bin/pardusdb`
 2. Installs the helper, MCP server, config, Python SDK
 3. Creates default database
 
-**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.27-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
+**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.28-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
 
 **Use this when:** You just want to install quickly, don't have Rust, or are deploying from a release tarball.
-
----
 
 ---
 
@@ -79,7 +77,7 @@ cd pardusdb
 1. Checks for Python 3.10+ (required by the `mcp` Python package)
 2. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
 3. If Python < 3.10 and no Homebrew: shows instructions and exits
-4. Requires `bin/pardus-v0.4.24-darwin-arm64` in the repo — if missing, **use `./setup.sh --install` instead** (compiles on your Mac)
+4. Requires `bin/pardus-v0.4.28-darwin-arm64` in the repo — if missing, **use `./setup-macos.sh --install` instead** (compiles on your Mac)
 5. Copies the precompiled binary to `~/.local/bin/pardusdb`
 6. Installs the helper, MCP server, config
 7. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
@@ -106,20 +104,44 @@ cd pardusdb
 
 ---
 
+### Option 4: setup-macos.sh — macOS build from source with virtual environment
+
+```bash
+git clone https://github.com/pardus-ai/pardusdb
+cd pardusdb
+./setup-macos.sh --install
+```
+
+**What it does:**
+1. Verifies the system is macOS
+2. Checks for Rust/Cargo and installs Rust via rustup.rs if missing
+3. Checks for Python 3.10+ for the `mcp` Python package
+4. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
+5. Compiles `pardusdb` with `cargo build --release`
+6. Saves the compiled binary to `bin/pardus-v0.4.28-macos-arm64`
+7. Installs the binary, helper, config, Python SDK, and default database
+8. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
+9. Installs and verifies the `mcp` package inside that venv
+10. Installs document import dependencies in the same venv
+
+**Use this when:** You are on macOS and need to build from the current source tree, or when no precompiled macOS binary exists.
+
+---
+
 ### Comparison
 
-| | setup.sh | install.sh | install-macos.sh |
-|---|---|---|---|
-| Requires Rust | Yes (auto-installed) | No | No |
-| Requires Python 3.10+ | No | No | **Yes (auto-installed via Homebrew)** |
-| Compiles source | Yes | No | No (use setup.sh instead) |
-| Takes binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` (must exist) |
-| Writes binary to `bin/` | Yes | No | No |
-| MCP installation | global pip | global pip | **virtual environment** |
-| Linux | Yes | Yes | Not supported |
-| macOS (Apple Silicon) | **Yes (recommended)** | No | Yes (if binary exists) |
-| Speed | ~1-3 min | <1 second | <1 second + Python install if needed |
-| MCP server, SDK, config | Same | Same | Same |
+| | setup.sh | install.sh | setup-macos.sh | install-macos.sh |
+|---|---|---|---|---|
+| Requires Rust | Yes | No | Yes | No |
+| Requires Python 3.10+ for MCP | No | No | **Yes (auto-installed via Homebrew)** | **Yes (auto-installed via Homebrew)** |
+| Compiles source | Yes | No | Yes | No |
+| Takes binary from | source build | `bin/pardus-v*-linux-x86_64` | source build | `bin/pardus-v*-darwin-arm64` |
+| Writes binary to `bin/` | Yes | No | Yes | No |
+| MCP installation | global pip | global pip | **virtual environment** | **virtual environment** |
+| Linux | Yes | Yes | Not supported | Not supported |
+| macOS (Apple Silicon) | Not recommended | No | **Yes (recommended)** | Yes (if binary exists) |
+| Speed | ~1-3 min | <1 second | ~1-3 min + Python setup | <1 second + Python setup |
+| MCP server, SDK, config | Same | Same | Same | Same |
 
 ---
 
@@ -146,7 +168,7 @@ echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-**Recommended installer on macOS:** If you have Rust installed (or don't mind installing it), use `./setup.sh --install`. It compiles the binary for your Mac and works out of the box. If you prefer not to install Rust, use `install-macos.sh` but you must first ensure `bin/pardus-v0.4.27-darwin-arm64` exists in the repo.
+**Recommended installer on macOS:** If you have Rust installed (or don't mind installing it), use `./setup-macos.sh --install`. It compiles the binary for your Mac and installs MCP in a Python 3.10+ virtual environment. If you prefer not to install Rust, use `install-macos.sh` but you must first ensure `bin/pardus-v0.4.28-darwin-arm64` exists in the repo.
 
 ---
 
@@ -294,7 +316,7 @@ Adjust the path to match your installation.
 
 ### OpenCode MCP Auto-Configuration
 
-During installation, both `setup.sh` and `install.sh` will ask if you want to configure PardusDB MCP for OpenCode automatically. If you answer yes, the installer adds the MCP server entry to `~/.config/opencode/opencode.jsonc` for you.
+During installation, `setup.sh`, `install.sh`, `setup-macos.sh`, and `install-macos.sh` can ask if you want to configure PardusDB MCP for OpenCode automatically. If you answer yes, the installer adds the MCP server entry to your OpenCode config.
 
 After installation completes, restart OpenCode to load the new MCP tools.
 
@@ -345,9 +367,9 @@ pip install xlrd                   # XLS (Excel 97-2003) support
 
 If `sentence-transformers` is not installed, vectors are stored as zeros. If a format library is missing, files of that type are skipped with a warning.
 
-**Optional dependency installers in setup.sh/install.sh:**
+**Optional dependency installers:**
 
-Both `setup.sh` and `install.sh` include optional steps to install these dependencies interactively:
+The setup/install scripts include optional steps to install these dependencies interactively:
 - `install_document_dependencies()` — Installs pypdf, python-docx, openpyxl, xlrd for document parsing
 - `install_sentence_transformers()` — Installs sentence-transformers for automatic embeddings (model `all-MiniLM-L6-v2`, ~80MB, requires confirmation interactiva)
 
@@ -387,12 +409,14 @@ pardus
 
 ## Uninstall
 
-Both installers support `--uninstall`. Run either from the repo root:
+Installers support `--uninstall`. Run the matching installer from the repo root:
 
 ```bash
 cd /path/to/pardusdb
 ./setup.sh --uninstall
 # or: ./install.sh --uninstall
+# macOS source install: ./setup-macos.sh --uninstall
+# macOS prebuilt install: ./install-macos.sh --uninstall
 ```
 
 This removes:
