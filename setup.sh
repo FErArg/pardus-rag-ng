@@ -252,11 +252,16 @@ install_mcp() {
     fi
     echo "  - mcp (Python package): $mcp_state"
 
-    cat > "$MCP_DIR/run_mcp.sh" << 'WRAPPER_EOF'
+    if [ -f "$SCRIPT_DIR/mcp/run_pardusdb_mcp.sh" ]; then
+        cp "$SCRIPT_DIR/mcp/run_pardusdb_mcp.sh" "$MCP_DIR/run_mcp.sh"
+        chmod +x "$MCP_DIR/run_mcp.sh"
+    else
+        cat > "$MCP_DIR/run_mcp.sh" << 'WRAPPER_EOF'
 #!/bin/bash
 exec "$HOME/.pardus/mcp/venv/bin/python" "$HOME/.pardus/mcp/src/server.py"
 WRAPPER_EOF
-    chmod +x "$MCP_DIR/run_mcp.sh"
+        chmod +x "$MCP_DIR/run_mcp.sh"
+    fi
 
     echo "  MCP server instalado en: $MCP_DIR/src/server.py"
     echo "  Wrapper: $MCP_DIR/run_mcp.sh"
