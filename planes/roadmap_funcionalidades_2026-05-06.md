@@ -1,7 +1,7 @@
 # PardusDB - Roadmap de Funcionalidades Futuras
 
 **Fecha:** 2026-05-06
-**Versión actual:** 0.4.26
+**Versión actual:** 0.4.27
 
 ---
 

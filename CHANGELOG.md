@@ -5,6 +5,12 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.27] - 2026-05-07
+
+### Fixed
+
+- **setup.sh wrapper**: Now copies robust `mcp/run_pardusdb_mcp.sh` instead of generating simple wrapper. The robust wrapper has fallback logic, path verification, and better error messages.
+
 ## [0.4.26] - 2026-05-07
 
 ### Fixed
