@@ -255,7 +255,7 @@ WRAPPER_EOF
     chmod +x "$MCP_DIR/run_mcp.sh"
 
     echo "  MCP server instalado en: $MCP_DIR/src/server.py"
-    echo "  Wrapper: $MCP_DIR/run_pardusdb_mcp.sh"
+    echo "  Wrapper: $MCP_DIR/run_mcp.sh"
 }
 
 install_document_dependencies() {
@@ -303,7 +303,7 @@ install_sentence_transformers() {
 configure_opencode() {
     echo "[7/9] Configurando OpenCode..."
 
-    if [ ! -f "$MCP_DIR/run_pardusdb_mcp.sh" ]; then
+    if [ ! -f "$MCP_DIR/run_mcp.sh" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
         return
     fi
