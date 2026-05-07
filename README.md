@@ -49,6 +49,8 @@ cd pardusdb
 
 Compiles `pardusdb` from Rust source with `cargo build --release`. Use this if you want the latest code or have modified the source. Rust is installed automatically if missing.
 
+**Works on Linux AND macOS (Apple Silicon).** The script auto-detects your platform and saves the binary to `bin/pardus-v{version}-{platform}-{arch}`.
+
 ### Option 2: install.sh — Use precompiled binary (no Rust)
 
 ```bash
@@ -67,16 +69,17 @@ cd pardusdb
 ./install-macos.sh --install
 ```
 
-Requires the precompiled macOS binary `bin/pardus-v0.4.23-darwin-arm64` in the repo. If not present, compile on your Mac with `cargo build --release` and copy to that path. Installs the MCP server inside a Python virtual environment (`~/.pardus/mcp/venv/`). **If Python < 3.10 is detected, automatically offers to install Python 3.13 via Homebrew.**
+**Requires the precompiled macOS binary** `bin/pardus-v0.4.23-darwin-arm64` in the repo. If not present, use `./setup.sh --install` instead (compiles on your Mac). Installs the MCP server inside a Python virtual environment (`~/.pardus/mcp/venv/`). **If Python < 3.10 is detected, automatically offers to install Python 3.13 via Homebrew.**
 
 | | setup.sh | install.sh | install-macos.sh |
 |---|---|---|---|
 | Requires Rust | Yes (auto-installed) | No | No |
 | Requires Python 3.10+ | No | No | **Yes (auto-installed via Homebrew)** |
-| Compiles source | Yes | No | **Only if macOS binary missing** |
-| Binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` |
+| Compiles source | Yes | No | No (use setup.sh instead) |
+| Binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` (must exist) |
 | MCP installation | global pip | global pip | virtual environment |
-| macOS compatibility | Partial | Partial | **Recommended** |
+| Linux | Yes | Yes | Not supported |
+| macOS (Apple Silicon) | **Yes (recommended)** | No | Yes (if binary exists) |
 | Speed | ~1-3 min | <1 sec | <1 sec + Python install if needed |
 
 See [INSTALL.md](INSTALL.md) for detailed instructions.

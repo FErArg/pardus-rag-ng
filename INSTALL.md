@@ -36,12 +36,13 @@ cd pardusdb
 
 **What it does:**
 1. Checks for Rust/Cargo (installs via rustup.rs if missing)
-2. Compiles `pardusdb` with `cargo build --release`
-3. Saves the compiled binary to `bin/pardus-v0.4.23-{platform}-{arch}` for future use
-4. Installs the binary, helper, MCP server, config, Python SDK
-5. Creates default database
+2. Detects your platform (Linux or macOS Apple Silicon)
+3. Compiles `pardusdb` with `cargo build --release`
+4. Saves the compiled binary to `bin/pardus-v0.4.23-{platform}-{arch}` for future use
+5. Installs the binary, helper, MCP server, config, Python SDK
+6. Creates default database
 
-**Use this when:** You want the latest source code, have modified Rust files, or are setting up a development environment.
+**Use this when:** You want the latest source code, have modified Rust files, or are setting up a development environment. **Works on both Linux and macOS.**
 
 ---
 
@@ -78,7 +79,7 @@ cd pardusdb
 1. Checks for Python 3.10+ (required by the `mcp` Python package)
 2. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
 3. If Python < 3.10 and no Homebrew: shows instructions and exits
-4. Requires `bin/pardus-v0.4.23-darwin-arm64` in the repo — if missing, compile on your Mac with `cargo build --release` and copy to `bin/pardus-v0.4.23-darwin-arm64`
+4. Requires `bin/pardus-v0.4.23-darwin-arm64` in the repo — if missing, **use `./setup.sh --install` instead** (compiles on your Mac)
 5. Copies the precompiled binary to `~/.local/bin/pardusdb`
 6. Installs the helper, MCP server, config
 7. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
@@ -111,11 +112,12 @@ cd pardusdb
 |---|---|---|---|
 | Requires Rust | Yes (auto-installed) | No | No |
 | Requires Python 3.10+ | No | No | **Yes (auto-installed via Homebrew)** |
-| Compiles source | Yes | No | **Only if macOS binary missing** |
-| Takes binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` |
+| Compiles source | Yes | No | No (use setup.sh instead) |
+| Takes binary from | `bin/pardus-v*-{platform}-{arch}` | `bin/pardus-v*-linux-x86_64` | `bin/pardus-v*-darwin-arm64` (must exist) |
 | Writes binary to `bin/` | Yes | No | No |
 | MCP installation | global pip | global pip | **virtual environment** |
-| macOS compatibility | Partial | Partial | **Recommended** |
+| Linux | Yes | Yes | Not supported |
+| macOS (Apple Silicon) | **Yes (recommended)** | No | Yes (if binary exists) |
 | Speed | ~1-3 min | <1 second | <1 second + Python install if needed |
 | MCP server, SDK, config | Same | Same | Same |
 
@@ -144,7 +146,7 @@ echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-**Recommended installer:** Use `install-macos.sh` on macOS. It installs the MCP server inside a Python virtual environment, avoiding SIP / PEP 668 restrictions that may block global `pip` on macOS 26+. See [Option 3](#option-3-install-macossh--macos-with-virtual-environment) above.
+**Recommended installer on macOS:** If you have Rust installed (or don't mind installing it), use `./setup.sh --install`. It compiles the binary for your Mac and works out of the box. If you prefer not to install Rust, use `install-macos.sh` but you must first ensure `bin/pardus-v0.4.23-darwin-arm64` exists in the repo.
 
 ---
 
