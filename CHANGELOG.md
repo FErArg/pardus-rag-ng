@@ -5,6 +5,12 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.26] - 2026-05-07
+
+### Fixed
+
+- **run_mcp.sh wrapper path** (`setup.sh`, `install-macos.sh`): Changed from `$MCP_DIR/...` to hardcoded `$HOME/.pardus/mcp/...` paths. The heredoc uses single quotes so `$MCP_DIR` was being literally written as empty string at runtime.
+
 ## [0.4.25] - 2026-05-07
 
 ### Changed
