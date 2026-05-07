@@ -226,56 +226,73 @@ install_mcp() {
         return
     fi
 
-    mkdir -p "$MCP_DIR"
-
-    cp "$SCRIPT_DIR/mcp/src/server.py" "$MCP_DIR/"
-
-    echo "  Instalando paquete MCP de Python..."
-
-    # Detectar plataforma para flags de pip
-    local pip_extra=""
-    if [ "$PLATFORM" = "linux" ]; then
-        pip_extra="--break-system-packages"
-    fi
-
-    if command -v pip3 &> /dev/null; then
-        PIP_CMD="pip3"
-    elif command -v pip &> /dev/null; then
-        PIP_CMD="pip"
+    if command -v python3 &> /dev/null; then
+        PYTHON_BIN="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON_BIN="python"
     else
-        PIP_CMD="python3 -m pip"
+        echo "  ERROR: Python no encontrado"
+        return
     fi
 
-    $PIP_CMD install mcp --quiet $pip_extra 2>/dev/null || echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+    mkdir -p "$MCP_DIR/src"
 
-    mcp_state=$(python3 -c "from mcp.server import Server; print('OK')" 2>/dev/null || echo "fallo")
+    cp "$SCRIPT_DIR/mcp/src/"*.py "$MCP_DIR/src/"
+
+    echo "  Creando virtual environment..."
+    "$PYTHON_BIN" -m venv "$MCP_DIR/venv"
+
+    "$MCP_DIR/venv/bin/pip" install --upgrade pip -q
+
+    if "$MCP_DIR/venv/bin/pip" install mcp -q 2>/dev/null; then
+        mcp_state="OK"
+    else
+        echo "  ADVERTENCIA: No se pudo instalar el paquete mcp"
+        mcp_state="fallo"
+    fi
     echo "  - mcp (Python package): $mcp_state"
 
-    echo "  MCP server instalado en: $MCP_DIR/server.py"
+    cat > "$MCP_DIR/run_mcp.sh" << 'WRAPPER_EOF'
+#!/bin/bash
+exec "$MCP_DIR/venv/bin/python" "$MCP_DIR/src/server.py"
+WRAPPER_EOF
+    chmod +x "$MCP_DIR/run_mcp.sh"
+
+    echo "  MCP server instalado en: $MCP_DIR/src/server.py"
+    echo "  Wrapper: $MCP_DIR/run_mcp.sh"
 }
 
 install_document_dependencies() {
     echo "[6/10] Instalando MarkItDown para importacion de documentos..."
 
-    local pip_extra=""
-    if [ "$PLATFORM" = "linux" ]; then
-        pip_extra="--break-system-packages"
-    fi
+    if [ -d "$MCP_DIR/venv" ]; then
+        "$MCP_DIR/venv/bin/pip" install 'markitdown[all]' -q 2>/dev/null || \
+        "$MCP_DIR/venv/bin/pip" install markitdown -q 2>/dev/null || \
+        echo "  ADVERTENCIA: No se pudo instalar markitdown"
 
-    if command -v pip3 &> /dev/null; then
-        PIP_CMD="pip3"
-    elif command -v pip &> /dev/null; then
-        PIP_CMD="pip"
+        md_state=$("$MCP_DIR/venv/bin/python" -c "from markitdown import MarkItDown; print('OK')" 2>/dev/null || echo "fallo")
+        echo "  - markitdown: $md_state"
     else
-        PIP_CMD="python3 -m pip"
+        local pip_extra=""
+        if [ "$PLATFORM" = "linux" ]; then
+            pip_extra="--break-system-packages"
+        fi
+
+        if command -v pip3 &> /dev/null; then
+            PIP_CMD="pip3"
+        elif command -v pip &> /dev/null; then
+            PIP_CMD="pip"
+        else
+            PIP_CMD="python3 -m pip"
+        fi
+
+        $PIP_CMD install 'markitdown[all]' --quiet $pip_extra 2>/dev/null || \
+        $PIP_CMD install markitdown --quiet $pip_extra 2>/dev/null || \
+        echo "  ADVERTENCIA: No se pudo instalar markitdown"
+
+        md_state=$(python3 -c "from markitdown import MarkItDown; print('OK')" 2>/dev/null || echo "fallo")
+        echo "  - markitdown: $md_state"
     fi
-
-    $PIP_CMD install 'markitdown[all]' --quiet $pip_extra 2>/dev/null || \
-    $PIP_CMD install markitdown --quiet $pip_extra 2>/dev/null || \
-    echo "  ADVERTENCIA: No se pudo instalar markitdown"
-
-    md_state=$(python3 -c "from markitdown import MarkItDown; print('OK')" 2>/dev/null || echo "fallo")
-    echo "  - markitdown: $md_state"
 }
 
 install_sentence_transformers() {
@@ -288,7 +305,11 @@ install_sentence_transformers() {
         return
     fi
 
-    pip3 install sentence-transformers --quiet 2>/dev/null || pip3 install sentence-transformers --quiet --break-system-packages 2>/dev/null
+    if [ -d "$MCP_DIR/venv" ]; then
+        "$MCP_DIR/venv/bin/pip" install sentence-transformers -q 2>/dev/null
+    else
+        pip3 install sentence-transformers --quiet 2>/dev/null || pip3 install sentence-transformers --quiet --break-system-packages 2>/dev/null
+    fi
 
     CACHE_DIR="$HOME/.cache/huggingface/hub"
     MODEL_DIR="models--sentence-transformers--all-MiniLM-L6-v2"
@@ -302,7 +323,7 @@ install_sentence_transformers() {
 configure_opencode() {
     echo "[8/10] Configurando OpenCode..."
 
-    if [ ! -f "$MCP_DIR/server.py" ]; then
+    if [ ! -f "$MCP_DIR/run_mcp.sh" ]; then
         echo "  MCP server no instalado, saltando configuracion OpenCode"
         return
     fi
@@ -328,7 +349,7 @@ configure_opencode() {
         echo "  Skill copiado: $OPCODE_SKILLS_DIR/pardusdb.md"
     fi
 
-    local MCP_PATH="/home/$REAL_USER/.pardus/mcp/server.py"
+    local MCP_PATH="$MCP_DIR/run_mcp.sh"
 
     if [ -f "$OPCODE_CONFIG" ]; then
         if python3 -c "
@@ -350,7 +371,7 @@ if 'mcp' not in cfg:
     cfg['mcp'] = {}
 cfg['mcp']['pardusdb'] = {
     'type': 'local',
-    'command': ['python3', '$MCP_PATH'],
+    'command': ['$MCP_PATH'],
     'enabled': True
 }
 with open('$OPCODE_CONFIG', 'w') as f:
@@ -365,7 +386,7 @@ with open('$OPCODE_CONFIG', 'w') as f:
   "mcp": {
     "pardusdb": {
       "type": "local",
-      "command": ["python3", "$MCP_PATH"],
+      "command": ["$MCP_PATH"],
       "enabled": true
     }
   }
