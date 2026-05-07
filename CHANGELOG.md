@@ -5,6 +5,13 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.25] - 2026-05-07
+
+### Changed
+
+- **setup.sh MCP installation**: Unified to use venv + wrapper approach. `install_mcp()` now creates `$MCP_DIR/venv/`, copies all `*.py` files to `src/`, creates `run_mcp.sh` wrapper, and installs packages in the venv. `install_document_dependencies()` and `install_sentence_transformers()` also install into the venv when available.
+- **opencode.json configuration**: Now uses `run_mcp.sh` wrapper instead of `python3 server.py` directly (in setup.sh).
+
 ## [0.4.24] - 2026-05-07
 
 ### Fixed

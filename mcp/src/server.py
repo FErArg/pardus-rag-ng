@@ -2155,7 +2155,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.24")
+server = Server("pardusdb-mcp", "0.4.25")
 
 
 @server.list_tools()
