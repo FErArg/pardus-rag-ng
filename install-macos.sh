@@ -248,9 +248,9 @@ install_mcp() {
     fi
     echo "  - mcp (Python package): $mcp_state"
 
-    cat > "$MCP_DIR/run_mcp.sh" << WRAPPER_EOF
+    cat > "$MCP_DIR/run_mcp.sh" << 'WRAPPER_EOF'
 #!/bin/bash
-exec "$MCP_DIR/venv/bin/python" "$MCP_DIR/src/server.py"
+exec "$HOME/.pardus/mcp/venv/bin/python" "$HOME/.pardus/mcp/src/server.py"
 WRAPPER_EOF
     chmod +x "$MCP_DIR/run_mcp.sh"
 
