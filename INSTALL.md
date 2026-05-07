@@ -38,7 +38,7 @@ cd pardusdb
 1. Checks for Rust/Cargo (installs via rustup.rs if missing)
 2. Detects your platform (Linux or macOS Apple Silicon)
 3. Compiles `pardusdb` with `cargo build --release`
-4. Saves the compiled binary to `bin/pardus-v0.4.23-{platform}-{arch}` for future use
+4. Saves the compiled binary to `bin/pardus-v0.4.24-{platform}-{arch}` for future use
 5. Installs the binary, helper, MCP server, config, Python SDK
 6. Creates default database
 
@@ -55,11 +55,11 @@ cd pardusdb
 ```
 
 **What it does:**
-1. Copies the precompiled binary from `bin/pardus-v0.4.23-linux-x86_64` to `~/.local/bin/pardusdb`
+1. Copies the precompiled binary from `bin/pardus-v0.4.24-linux-x86_64` to `~/.local/bin/pardusdb`
 2. Installs the helper, MCP server, config, Python SDK
 3. Creates default database
 
-**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.23-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
+**Important:** `install.sh` does **not** compile anything. It needs a pre-existing binary at `bin/pardus-v0.4.24-linux-x86_64`. If you modified Rust source code, run `cargo build --release` first or use `setup.sh`.
 
 **Use this when:** You just want to install quickly, don't have Rust, or are deploying from a release tarball.
 
@@ -79,7 +79,7 @@ cd pardusdb
 1. Checks for Python 3.10+ (required by the `mcp` Python package)
 2. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
 3. If Python < 3.10 and no Homebrew: shows instructions and exits
-4. Requires `bin/pardus-v0.4.23-darwin-arm64` in the repo — if missing, **use `./setup.sh --install` instead** (compiles on your Mac)
+4. Requires `bin/pardus-v0.4.24-darwin-arm64` in the repo — if missing, **use `./setup.sh --install` instead** (compiles on your Mac)
 5. Copies the precompiled binary to `~/.local/bin/pardusdb`
 6. Installs the helper, MCP server, config
 7. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
@@ -146,7 +146,7 @@ echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-**Recommended installer on macOS:** If you have Rust installed (or don't mind installing it), use `./setup.sh --install`. It compiles the binary for your Mac and works out of the box. If you prefer not to install Rust, use `install-macos.sh` but you must first ensure `bin/pardus-v0.4.23-darwin-arm64` exists in the repo.
+**Recommended installer on macOS:** If you have Rust installed (or don't mind installing it), use `./setup.sh --install`. It compiles the binary for your Mac and works out of the box. If you prefer not to install Rust, use `install-macos.sh` but you must first ensure `bin/pardus-v0.4.24-darwin-arm64` exists in the repo.
 
 ---
 

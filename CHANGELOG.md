@@ -5,6 +5,13 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.24] - 2026-05-07
+
+### Fixed
+
+- **macOS MCP wrapper filename** (`install-macos.sh`): Fixed `configure_opencode()` to check for `run_mcp.sh` instead of `run_pardusdb_mcp.sh`. The wrong filename caused OpenCode MCP configuration to be skipped on macOS. Also corrected the echo message that listed the wrong wrapper filename.
+- **macOS installation docs**: Clarified that `setup.sh --install` is the recommended way to install on macOS (compiles natively), while `install-macos.sh` requires a pre-built binary.
+
 ## [0.4.23] - 2026-05-06
 
 ### Added
