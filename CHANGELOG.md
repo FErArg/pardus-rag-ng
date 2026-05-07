@@ -5,7 +5,11 @@ All notable changes to PardusDB will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.28] - 2026-05-07
+## [0.4.29] - 2026-05-07
+
+### Fixed
+
+- **MCP server startup crash** (`mcp/src/server.py`): Fixed an issue where opening opencode in a directory containing `database.pardus` would crash the MCP server before it could establish the stdio transport, resulting in a `-32000 connection closed` error. `PardusDBClient` no longer runs database discovery or integrity verification at module-import time. Instead, discovery is deferred to the first `execute()` call and failures are silently swallowed, allowing the MCP server to start and handle subsequent tool calls gracefully even when `pardusdb` is unavailable or the database file is corrupt.
 
 ### Added
 

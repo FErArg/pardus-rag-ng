@@ -276,28 +276,35 @@ class PardusDBClient:
     def __init__(self) -> None:
         self.db_path: Optional[str] = None
         self.current_table: Optional[str] = None
-        self._discover_database()
+        self._discovered: bool = False
 
     def _discover_database(self) -> None:
         """Check for database.pardus in CWD. If found, open and verify integrity."""
+        if self._discovered:
+            return
+        self._discovered = True
         cwd_db = Path.cwd() / "database.pardus"
         if cwd_db.exists():
             self.db_path = str(cwd_db)
-            self._verify_integrity()
+            self._try_verify_integrity()
 
-    def _verify_integrity(self) -> None:
-        """Run basic integrity check: access + SHOW TABLES."""
-        result = self.execute("SHOW TABLES;")
-        if "Error" in result:
-            raise ConnectionError(f"Database integrity check failed: {result}")
+    def _try_verify_integrity(self) -> None:
+        """Attempt integrity check but never crash the server at startup."""
+        try:
+            result = self.execute("SHOW TABLES;")
+            if "Error" in result:
+                self.db_path = None
+        except Exception:
+            self.db_path = None
 
     def execute(self, command: str) -> str:
         import subprocess
+        self._discover_database()
         if self.db_path is None:
             cwd_db = Path.cwd() / "database.pardus"
             if cwd_db.exists():
                 self.db_path = str(cwd_db)
-                self._verify_integrity()
+                self._try_verify_integrity()
             else:
                 self.db_path = str(cwd_db)
                 create_result = self._create_database(str(cwd_db))
@@ -2155,7 +2162,7 @@ TOOLS = [
 
 # ==================== Server Setup ====================
 
-server = Server("pardusdb-mcp", "0.4.28")
+server = Server("pardusdb-mcp", "0.4.29")
 
 
 @server.list_tools()
