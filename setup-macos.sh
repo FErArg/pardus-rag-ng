@@ -444,15 +444,7 @@ create_data_dir() {
 
     mkdir -p "$DATA_DIR"
     echo "  Data directory: $DATA_DIR/"
-    echo "  Default database: $DATA_DIR/pardus-rag.db"
-
-    if [ ! -f "$DATA_DIR/pardus-rag.db" ]; then
-        echo "  Creating default database..."
-        echo ".create $DATA_DIR/pardus-rag.db" | "$INSTALL_DIR/$BINARY_NAME" > /dev/null 2>&1 || true
-        if [ -f "$DATA_DIR/pardus-rag.db" ]; then
-            echo "  Default database created."
-        fi
-    fi
+    echo "  Default database: $DATA_DIR/pardus-rag.db (created on first 'pardus' use)"
 }
 
 verify_installation() {

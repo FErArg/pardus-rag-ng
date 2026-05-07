@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **macOS MCP package installation**: `setup-macos.sh` validates Python 3.10+, recreates the MCP virtual environment with the selected Python, installs `mcp` with `python -m pip`, and verifies `from mcp.server import Server` so MCP install failures are surfaced with pip output instead of hidden warnings.
+- **macOS default database creation**: `setup-macos.sh` no longer initializes `~/.pardus/pardus-rag.db` during installation; the generated `pardus` helper still creates it lazily on first use.
 - **macOS install docs**: Updated README and INSTALL instructions to recommend `setup-macos.sh` for macOS source builds and reserve `install-macos.sh` for precompiled macOS binaries.
 
 ## [0.4.27] - 2026-05-07

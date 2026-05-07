@@ -22,7 +22,7 @@ Multiple installers are provided. Use the macOS-specific scripts on macOS so the
 | Data directory | `~/.pardus/` |
 | Python SDK | (pip-installed from source) |
 
-The default database `~/.pardus/pardus-rag.db` is auto-created after installation.
+The `pardus` helper manages the default database at `~/.pardus/pardus-rag.db`. Some installers create it during installation; `setup-macos.sh` only creates `~/.pardus/` and defers database creation until the first `pardus` run.
 
 ---
 
@@ -119,10 +119,11 @@ cd pardusdb
 4. If Python < 3.10 is detected and Homebrew is available: offers to install Python 3.13 via `brew install python@3.13`
 5. Compiles `pardusdb` with `cargo build --release`
 6. Saves the compiled binary to `bin/pardus-v0.4.28-macos-arm64`
-7. Installs the binary, helper, config, Python SDK, and default database
+7. Installs the binary, helper, config, and Python SDK
 8. Creates a Python virtual environment at `~/.pardus/mcp/venv/`
 9. Installs and verifies the `mcp` package inside that venv
 10. Installs document import dependencies in the same venv
+11. Creates `~/.pardus/` but does not initialize `~/.pardus/pardus-rag.db`; the helper creates it on first `pardus` use
 
 **Use this when:** You are on macOS and need to build from the current source tree, or when no precompiled macOS binary exists.
 

@@ -69,7 +69,7 @@ cd pardusdb
 ./setup-macos.sh --install
 ```
 
-Compiles `pardusdb` from Rust source, saves the binary to `bin/pardus-v0.4.28-macos-arm64`, and installs the MCP server inside `~/.pardus/mcp/venv/`. If Python < 3.10 is detected, it offers to install Python 3.13 via Homebrew before installing the `mcp` Python package.
+Compiles `pardusdb` from Rust source, saves the binary to `bin/pardus-v0.4.28-macos-arm64`, and installs the MCP server inside `~/.pardus/mcp/venv/`. If Python < 3.10 is detected, it offers to install Python 3.13 via Homebrew before installing the `mcp` Python package. The installer creates `~/.pardus/` but does not initialize `~/.pardus/pardus-rag.db`; the `pardus` helper creates it on first use.
 
 ### Option 4: install-macos.sh — macOS precompiled binary with venv-based MCP
 
