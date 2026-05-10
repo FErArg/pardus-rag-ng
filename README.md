@@ -2,14 +2,12 @@
 
 **A fast, SQLite-like embedded vector database with graph-based approximate nearest neighbor search**
 
-[![Version](https://img.shields.io/badge/version-0.4.29-blue.svg)](https://github.com/pardus-ai/pardusdb)
+[![Version](https://img.shields.io/badge/version-0.4.29-blue.svg)](https://github.com/FErArg/pardus-rag-ng)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.85-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org/)
 
-PardusDB is designed for developers building local AI applications — RAG pipelines, semantic search, recommendation systems, or any project that needs lightweight, persistent vector storage without external dependencies.
-
-While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no-code platform to ask questions of their CSV, JSON, and PDF data in plain English, PardusDB gives developers the same speed and privacy in an embeddable, fully open-source vector database.
+PardusDB-NG represents a new approach to local vector storage, integrating Microsoft's MarkItDown tool [1] for converting various documents (PDF, Word, Excel, images, audio) to Markdown. This integration allows developers to feed their RAG and semantic search pipelines with structured content from multiple formats, while maintaining the lightness and privacy that characterize PardusDB.
 
 ## Contributors
 
@@ -31,7 +29,7 @@ While [Pardus AI](https://pardusai.org/) gives non-technical users a powerful no
 - **Full transactions** — BEGIN/COMMIT/ROLLBACK for atomic operations
 - **Optional GPU acceleration** — For large batch inserts and queries
 - **Python MCP server**
-- **Import documents from disk** — PDF, DOCX, PPTX, XLSX, HTML, EPUB, CSV, JSON, JSONL, MD, TXT with automatic text extraction and vector embeddings
+- **Import documents from disk** — PDF, DOCX, PPTX, XLSX, HTML, EPUB, CSV, JSON, JSONL, MD, TXT with automatic text extraction and vector embeddings (MarkItDown))
 - **MarkItDown integration** — Uses Microsoft MarkItDown library for universal document-to-Markdown conversion
 - **Database health checks** — Verify integrity, detect orphans, check dimensions
 
@@ -42,7 +40,7 @@ Installers install the binary, helper script, MCP server, Python SDK, and config
 ### Option 1: setup.sh — Build from source on Linux (requires Rust)
 
 ```bash
-git clone https://github.com/pardus-ai/pardusdb
+git clone https://github.com/FErArg/pardus-rag-ng
 cd pardusdb
 ./setup.sh --install
 ```
@@ -54,7 +52,7 @@ Compiles `pardusdb` from Rust source with `cargo build --release`. Use this if y
 ### Option 2: install.sh — Use precompiled binary (no Rust)
 
 ```bash
-git clone https://github.com/pardus-ai/pardusdb
+git clone https://github.com/FErArg/pardus-rag-ng
 cd pardusdb
 ./install.sh --install
 ```
@@ -64,7 +62,7 @@ cd pardusdb
 ### Option 3: setup-macos.sh — macOS build from source with venv-based MCP
 
 ```bash
-git clone https://github.com/pardus-ai/pardusdb
+git clone https://github.com/FErArg/pardus-rag-ng
 cd pardusdb
 ./setup-macos.sh --install
 ```
@@ -74,7 +72,7 @@ cd pardusdb
 ### Option 4: install-macos.sh — macOS precompiled binary with venv-based MCP
 
 ```bash
-git clone https://github.com/pardus-ai/pardusdb
+git clone https://github.com/FErArg/pardus-rag-ng
 cd pardusdb
 ./install-macos.sh --install
 ```
@@ -230,7 +228,7 @@ LEFT JOIN orders ON users.id = orders.user_id;
 
 ## MCP Server for AI Agents
 
-PardusDB includes an MCP server that allows AI agents (OpenCode, Claude Desktop, etc.) to interact with the database using natural language.
+PardusDB-NG includes an MCP server that allows AI agents (OpenCode, Claude Desktop, etc.) to interact with the database using natural language.
 
 ### Tools Available
 
@@ -272,7 +270,7 @@ Adjust the path to match your installation. Tools are automatically available to
 
 ### Documentation for AI Agents
 
-The file `pardusdb-agents.md` contains a complete guide for AI agents (OpenCode, Claude Desktop, etc.) on how to use all 15 PardusDB MCP tools.
+The file `pardusdb-agents.md` contains a complete guide for AI agents (OpenCode, Claude Desktop, etc.) on how to use all 15 PardusDB-NG MCP tools.
 
 **For new projects using the MCP:**
 
@@ -346,7 +344,7 @@ pip install requests
 python simple_rag.py
 ```
 
-## Why We Built PardusDB
+## Why We Built PardusDB - Original Authors
 
 The Pardus AI team built PardusDB because we believe private, local-first AI tools should be accessible to everyone — from individual developers to large teams.
 
