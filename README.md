@@ -1,4 +1,4 @@
-# PardusDB
+# PardusDB-NG
 
 **A fast, SQLite-like embedded vector database with graph-based approximate nearest neighbor search**
 
